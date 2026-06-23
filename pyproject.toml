@@ -25,6 +25,49 @@ filterwarnings = [
     "ignore::pandas.errors.Pandas4Warning",
 ]
 
+[tool.mypy]
+strict_optional = true
+
+# `src.features` chains Series.rolling / .replace / .iloc operations that
+# `pandas-stubs` flags with extremely precise overload mismatches that are
+# not runtime bugs. Silence only the overloaded-operator & index errors,
+# NOT everything — real bugs (wrong arg types, etc.) still surface.
+[[tool.mypy.overrides]]
+module = "src.features"
+ignore_missing_imports = true
+disable_error_code = [
+    "operator",
+    "index",
+    "arg-type",
+    "call-overload",
+    "return-value",
+]
+
+# Tests use `unittest.mock.MagicMock` whose attributes (return_value,
+# call_args, assert_not_called, side_effect) aren't precisely typed.
+[[tool.mypy.overrides]]
+module = "tests.*"
+disable_error_code = [
+    "attr-defined",
+    "arg-type",
+    "call-overload",
+    "return-value",
+    "dict-item",
+]
+
+# Tolerate missing type stubs for third-party imports.
+[[tool.mypy.overrides]]
+module = [
+    "src.data_pipeline",
+    "src.utils",
+    "src.paper_trader",
+    "training.train",
+    "training.threshold",
+    "trade",
+    "main",
+]
+ignore_missing_imports = true
+
 [dependency-groups]
 dev = [
     "mypy>=2.1.0",

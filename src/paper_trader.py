@@ -107,13 +107,37 @@ class PaperTrader:
         return self.trade_client.submit_order(order_data=order)
 
     def reconcile(self, signals: dict[str, dict]):
+        """Reconcile signals with the broker. Returns a list of trade tuples.
+
+        Each tuple is `(ticker, qty, action)` where action is one of
+        `BUY` / `SELL` / `NO_EQUITY` / `MAX_POS_CAP` / `*_FAIL:<exc>`.
+
+        Semantics note on the equity checks: when `account.equity <= 0`,
+        `qty * ask` would always trip `MAX_POS_CAP` since `max_pos_value`
+        collapses to 0. We emit `NO_EQUITY` before the cap so log output
+        names the actual cause; the cap check still guards at low equity.
+        """
         positions = self.get_positions()
         account = self.get_account()
         trades = []
-        max_pos_value = account["equity"] * self.config.trade_max_position_pct
+        equity = float(account.get("equity") or 0.0)
+        max_pos_value = max(0.0, equity * self.config.trade_max_position_pct)
 
-        for ticker in signals:
+        # Only cancel orders for tickers we are about to act on. Skipping HOLD
+        # tickers saves up to ~480 Alpaca calls per cycle on a full-universe
+        # signal set.
+        actionable = [
+            t for t, info in signals.items() if info["signal"] in ("BUY", "SELL")
+        ]
+        for ticker in actionable:
             self.cancel_open_orders(symbol=ticker)
+
+        buy_tickers = [
+            t
+            for t, info in signals.items()
+            if info["signal"] == "BUY" and t not in positions
+        ]
+        quotes = self.get_latest_quotes(buy_tickers) if buy_tickers else {}
 
         for ticker, info in signals.items():
             signal = info["signal"]
@@ -122,8 +146,15 @@ class PaperTrader:
 
             if signal == "BUY" and not has_pos:
                 qty = self.config.trade_buy_qty
-                notional = qty * 100
-                if notional > max_pos_value and account["equity"] > 0:
+                if equity <= 0:
+                    trades.append((ticker, 0, "NO_EQUITY"))
+                    continue
+                ask = quotes.get(ticker, {}).get("ask")
+                if ask is None or ask <= 0:
+                    logger.warning(
+                        "No usable ask for %s; skipping position-cap check", ticker
+                    )
+                elif qty * ask > max_pos_value:
                     trades.append((ticker, 0, "MAX_POS_CAP"))
                     continue
                 try:

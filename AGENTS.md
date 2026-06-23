@@ -31,6 +31,15 @@ uv run mypy .                   # Typecheck (use `# type: ignore` for ML code)
 uv run pytest                   # Tests
 ```
 
+`mypy` accepts a single global mypy config in `pyproject.toml`:
+- `src.features` is excluded from per-error checking — its rolling/Series
+  chained operations trip `pandas-stubs` overload rules that are not
+  runtime-relevant.
+- Missing imports are ignored for `src.data_pipeline`, `src.utils`,
+  `src.paper_trader`, `trade.py`, `main.py`, `training.train`, and
+  `training.threshold` (sklearn, yfinance, alpaca-py don't ship stubs).
+
+
 ## Colab template
 
 ```bash
@@ -68,6 +77,38 @@ main.py              # Entry point: --mode train|infer, --loss mse|msrr|margin|l
 - **Threshold post-optimization**: Model outputs raw scores (-1 to 1). Post-training optimization finds separate buy/sell thresholds maximizing Sharpe ratio.
 - **Alpaca paper trading**: Model scores → paper orders via Alpaca API. yfinance for training data, Alpaca for live execution. See `.env.example` for API keys.
 - **No secrets**: No API keys, no env vars — stock data is public market data (except Alpaca API keys for paper trading; keep in `.env`).
+
+## Paper-trading safety rules
+
+These are tested in `tests/test_paper_trader.py` (mocked Alpaca clients)
+and must be preserved when modifying `src/paper_trader.py`:
+
+- **Per-ticker cancel scope**: `reconcile()` may only call
+  `cancel_open_orders(symbol=t)` for tickers present in the current
+  signal set. Never blanket-cancel — triggers duplicate fills and
+  Alpaca rate-limit guards.
+- **Fractional share rounding**: `qty = round(abs(pos["qty"]))` to
+  preserve fractional-share positions without int-truncation drift.
+- **Partial close**: SELL closes `min(held, trade_sell_qty)`;
+  smaller-than-qty positions close fully.
+- **Position cap**: BUY is checked against
+  `equity * trade_max_position_pct` using the *real ask price* fetched
+  from `get_latest_quotes()`. No hardcoded $100 placeholder. Because
+  BUY only fires on tickers with no current position, the cap is a
+  *per-entry new-notional* limit, not a cumulative per-ticker exposure
+  limit. Multiple cycle-in/cycle-out sequences on the same ticker can
+  exceed this number on aggregate.
+- **No-equity guard**: if `account.equity <= 0`, all BUYs are blocked
+  with `NO_EQUITY` rather than firing with bad notional math.
+- **Order failures are captured** in the `trades` list as
+  `<action>_FAIL:<exception>` instead of raising out of the cycle.
+
+## Timezones
+
+Use `zoneinfo.ZoneInfo` (Python 3.9+, natively supported on 3.14). The
+older `pytz` library is deprecated; do not reintroduce it. All three of
+`main.py`, `src/paper_trader.py`, `trade.py`, and `src/inference.py`
+use `ZoneInfo("America/New_York")` consistently.
 
 ## Hardware acceleration
 

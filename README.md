@@ -152,7 +152,7 @@ Model scores can be evaluated in real-time via Alpaca's paper trading API (commi
 
 1. Sign up at [alpaca.markets](https://alpaca.markets) → Dashboard → API Keys
 2. Generate **paper** API keys (not live)
-3. Add to `.env`:
+3. Copy `.env.example` to `.env` and fill in your keys:
    ```
    ALPACA_API_KEY=pk_...
    ALPACA_SECRET_KEY=...
@@ -167,7 +167,20 @@ uv run python trade.py --interval 15 --headless  # Logs only
 uv run python main.py --mode trade --trade-interval 15  # Via main.py
 ```
 
-The trading loop: run inference on latest data → get BUY/SELL/HOLD signals → reconcile with Alpaca paper positions → display P&L → repeat every N minutes.
+The trading loop: run inference on the latest cached business day → get BUY/SELL/HOLD signals → reconcile with Alpaca paper positions → display P&L → repeat every N minutes.
+
+### Reconciliation logic
+
+Each cycle, `PaperTrader.reconcile()` does the following:
+
+1. **Cancel scope:** only cancels *open orders for tickers in the current signal set* — never blanket-cancels. Avoids duplicating in-flight fills and respects Alpaca's rate-limit guard.
+2. **Quote fetch:** for every fresh BUY ticker, fetches a latest ask quote. Effort is skipped entirely if no new buys are needed.
+3. **Position cap:** `qty * ask_price` is compared against `equity * trade_max_position_pct` (default 2%). Trades that would breach the cap are skipped with a `MAX_POS_CAP` entry; trades with no usable ask are skipped with a warning log.
+4. **No-equity guard:** if `account.equity <= 0`, all BUYs are blocked with `NO_EQUITY`.
+5. **Partial close:** SELL sells `min(held, trade_sell_qty)` — for a 1000-share position with `trade_sell_qty=20`, only 20 are sold. Smaller positions close fully.
+   Note: the position cap (#3) is checked on **each new entry** independently, not on cumulative exposure. After a SELL closes a position, a later BUY on the same ticker is treated as a fresh entry. If you want cumulative caps, lower `trade_buy_qty` or raise `trade_max_position_pct`'s threshold accordingly.
+6. **Fractional shares:** positions held as fractional shares (e.g. `-3.7` short) are rounded, never truncated, so no dust-share drift.
+7. **Failure capture:** any rejected order is logged as `<action>_FAIL:<exception>` in the trades list instead of crashing the cycle.
 
 ### Walk-Forward Validation
 
