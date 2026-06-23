@@ -15,7 +15,7 @@
   <meta name="twitter:title" content="TradingBot | Multi-stock ML trading bot">
   <meta name="twitter:description" content="Multi-stock ML trading bot using a decoder-only Transformer with RankGLU output and market-guided gating. Learns inter-stock relationships across the S&P 500.">
   
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2064%2064%22%3E%0A%20%20%3Crect%20width%3D%2264%22%20height%3D%2264%22%20rx%3D%2212%22%20fill%3D%22%23282a36%22/%3E%0A%20%20%3Cpolyline%20points%3D%2212%2C44%2024%2C28%2036%2C34%2048%2C16%22%20fill%3D%22none%22%20stroke%3D%22%2350fa7b%22%20stroke-width%3D%224.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22/%3E%0A%20%20%3Ccircle%20cx%3D%2248%22%20cy%3D%2216%22%20r%3D%225%22%20fill%3D%22%23bd93f9%22/%3E%0A%3C/svg%3E%0A">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20viewBox%3D%220%200%2064%2064%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%0A%20%20%3Crect%20width%3D%2264%22%20height%3D%2264%22%20rx%3D%2212%22%20fill%3D%22%23282a36%22/%3E%0A%20%20%3Crect%20x%3D%2218%22%20y%3D%2222%22%20width%3D%2228%22%20height%3D%2228%22%20rx%3D%224%22%20fill%3D%22%2350fa7b%22/%3E%0A%20%20%3Crect%20x%3D%2230%22%20y%3D%2210%22%20width%3D%224%22%20height%3D%2240%22%20rx%3D%222%22%20fill%3D%22%2350fa7b%22/%3E%0A%20%20%3Crect%20x%3D%2218%22%20y%3D%2222%22%20width%3D%2212%22%20height%3D%2228%22%20rx%3D%224%22%20fill%3D%22%23bd93f9%22%20opacity%3D%220.65%22/%3E%0A%3C/svg%3E%0A">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
@@ -39,6 +39,15 @@
 
     html { scroll-behavior: smooth; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; scrollbar-width: thin; scrollbar-color: var(--panel) var(--bg); }
 
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
     body {
       font-family: var(--font);
       background: var(--bg);
@@ -49,6 +58,12 @@
 
     a { color: var(--cyan); text-decoration: none; }
     a:hover { color: var(--pink); }
+    a:focus-visible,
+    .btn:focus-visible,
+    .mobile-toggle:focus-visible {
+      outline: 2px solid var(--pink);
+      outline-offset: 2px;
+    }
 
     h1, h2, h3, h4 { font-weight: 700; }
 
@@ -60,6 +75,7 @@
       border-right: 1px solid var(--muted);
       display: flex;
       flex-direction: column;
+      overflow-y: auto;
       z-index: 1200;
     }
 
@@ -104,6 +120,9 @@
 
     .sidebar-nav {
       flex: 1;
+    }
+
+    .sidebar-nav ul {
       list-style: none;
     }
 
@@ -183,7 +202,7 @@
     }
 
     .hero h1 {
-      font-size: 3.5rem;
+      font-size: 3rem;
       color: var(--purple);
       margin-bottom: 12px;
     }
@@ -250,17 +269,19 @@
       border: 1px solid var(--muted);
       border-radius: 8px;
       padding: 20px;
-      transition: border-color 0.2s;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+      transition: border-color 0.2s, box-shadow 0.2s;
     }
 
     .card:hover {
       border-color: var(--purple);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
     }
 
     .card h3 {
       color: var(--purple);
-      font-size: 0.95rem;
-      margin-bottom: 8px;
+      font-size: 1.05rem;
+      margin-bottom: 10px;
     }
 
     .card p {
@@ -292,7 +313,7 @@
 
     tr:last-child td { border-bottom: none; }
 
-    tr:hover td { background: var(--bg); }
+    tr:hover td { background: rgba(255, 255, 255, 0.05); }
 
     .status-comfortable { color: var(--green); }
     .status-tight { color: var(--orange); }
@@ -409,7 +430,7 @@
       background: var(--panel);
       border: 1px solid var(--muted);
       color: var(--fg);
-      padding: 8px 10px;
+      padding: 12px 14px;
       border-radius: 50%;
       cursor: pointer;
       transition: background 250ms cubic-bezier(0.4, 0, 0.2, 1);
@@ -419,12 +440,20 @@
       background: var(--muted);
     }
 
+    .sidebar-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 1100;
+    }
+
     @media (max-width: 900px) {
       .sidebar { display: none; }
       .main { margin-left: 0; }
       .mobile-toggle { display: block; }
       .sidebar.open { display: flex; width: 240px; }
-      .main.shifted { margin-left: 240px; }
+      .sidebar-overlay.open { display: block; }
     }
   </style>
 </head>
@@ -432,71 +461,75 @@
 
 
 
-<button class="mobile-toggle" onclick="document.querySelector('.sidebar').classList.toggle('open'); document.querySelector('.main').classList.toggle('shifted');" aria-label="Toggle mobile menu">&#9776;</button>
-<a class="skip-link" href="#hero">Skip to content</a>
+<button class="mobile-toggle" id="mobile-toggle" onclick="toggleSidebar()" aria-label="Toggle mobile menu" aria-controls="sidebar" aria-expanded="false">&#9776;</button>
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+<a class="skip-link" href="#main-content">Skip to content</a>
 
 <aside class="sidebar">
   <div class="sidebar-brand">
     <div class="logo"><svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
   <rect width="64" height="64" rx="14" fill="#44475a"/>
-  <polyline points="8,46 20,28 32,34 44,16 56,22" fill="none" stroke="#50fa7b" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
-  <circle cx="56" cy="22" r="5" fill="#bd93f9"/>
+  <rect x="18" y="22" width="28" height="28" rx="4" fill="#50fa7b"/>
+  <rect x="30" y="10" width="4" height="40" rx="2" fill="#50fa7b"/>
+  <rect x="18" y="22" width="12" height="28" rx="4" fill="#bd93f9" opacity="0.65"/>
 </svg>
 </div>
     <div class="name">TradingBot</div>
     <div class="tagline">ML · S&P 500 · Transformer</div>
   </div>
   <hr class="sidebar-divider">
-  <ul class="sidebar-nav">
-    <li><a href="#hero"><span class="icon">
+  <nav class="sidebar-nav" aria-label="Main navigation">
+    <ul>
+      <li><a href="#hero"><span class="icon">
 
-<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><path d="M10,20V14H14V20H19V12H22L12,3L2,12H5V20H10Z"/></svg>
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3 12l9-9 9 9"/><path d="M5 10v9a1 1 0 0 0 1 1h3v-5h6v5h3a1 1 0 0 0 1-1v-9"/></svg>
 
 </span> Home</a></li>
-    
-    <li><a href="#features"><span class="icon">
+      
+      <li><a href="#features"><span class="icon">
 
-<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><path d="M3,3H11V11H3V3M3,13H11V21H3V13M13,3H21V11H13V3M13,13H21V21H13V13Z"/></svg>
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
 
 </span> Features</a></li>
-    
-    <li><a href="#cli"><span class="icon">
+      
+      <li><a href="#cli"><span class="icon">
 
-<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><path d="M3,17V19H9V17H3M3,5V7H13V5H3M13,21V19H21V17H13V15H11V21H13M7,9V11H3V13H7V15H9V9H7M21,13V11H11V13H21M15,9H17V7H21V5H17V3H15V9Z"/></svg>
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1.08-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1.08 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1.08 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1.08z"/></svg>
 
 </span> CLI Reference</a></li>
-    
-    <li><a href="#architecture"><span class="icon">
+      
+      <li><a href="#architecture"><span class="icon">
 
-<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><path d="M17,7A2,2 0 0,1 19,9V17A2,2 0 0,1 17,19H7A2,2 0 0,1 5,17V9A2,2 0 0,1 7,7H17M7,9V17H17V9H7M12,2A2,2 0 0,1 14,4V6H15V4A3,3 0 0,0 12,1A3,3 0 0,0 9,4V6H10V4A2,2 0 0,1 12,2Z"/></svg>
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="5" y="5" width="14" height="14" rx="2"/><rect x="8" y="8" width="8" height="8" rx="1"/><path d="M5 10H3"/><path d="M5 14H3"/><path d="M21 10h-2"/><path d="M21 14h-2"/><path d="M10 3v2"/><path d="M14 3v2"/><path d="M10 19v2"/><path d="M14 19v2"/></svg>
 
 </span> Model Architecture</a></li>
-    
-    <li><a href="#how-it-works"><span class="icon">
+      
+      <li><a href="#how-it-works"><span class="icon">
 
-<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><path d="M12,16L19.36,10.27L21,9L12,3L3,9L4.63,10.27M12,18.54L4.62,12.81L3,14.07L12,20L21,14.07L19.37,12.8L12,18.54Z"/></svg>
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><polygon points="12 2 22 8.5 12 15 2 8.5"/><polyline points="2 15.5 12 22 22 15.5"/><polyline points="2 11.5 12 18 22 11.5"/></svg>
 
 </span> How It Works</a></li>
-    
-    <li><a href="#terms"><span class="icon">
+      
+      <li><a href="#terms"><span class="icon">
 
-<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20M10,19L12,17L14,19L15,18L13,16L15,14L14,13L12,15L10,13L9,14L11,16L9,18L10,19Z"/></svg>
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg>
 
 </span> Terminology</a></li>
-    
-    <li><a href="#quickstart"><span class="icon">
+      
+      <li><a href="#quickstart"><span class="icon">
 
-<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><path d="M8,5.14V19.14L19,12.14L8,5.14Z"/></svg>
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><polygon points="6 3 20 12 6 21"/></svg>
 
 </span> Quick Start</a></li>
-    
-    <li><a href="#stack"><span class="icon">
+      
+      <li><a href="#stack"><span class="icon">
 
-<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><path d="M12,16L19.36,10.27L21,9L12,3L3,9L4.63,10.27M12,18.54L4.62,12.81L3,14.07L12,20L21,14.07L19.37,12.8L12,18.54Z"/></svg>
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><polygon points="12 2 22 8.5 12 15 2 8.5"/><polyline points="2 15.5 12 22 22 15.5"/><polyline points="2 11.5 12 18 22 11.5"/></svg>
 
 </span> Tech Stack</a></li>
-    
-  </ul>
+      
+    </ul>
+  </nav>
   <hr class="sidebar-divider">
   <div class="sidebar-footer">
     <div>&copy; 2026 yuzu-octopus</div>
@@ -505,7 +538,7 @@
   </div>
 </aside>
 
-<main class="main">
+<main class="main" id="main-content">
 
   <section id="hero" class="hero">
     <div class="container">
@@ -560,6 +593,7 @@
       <h2>CLI Reference</h2>
 
       
+      <div style="overflow-x: auto;">
       <table>
         <thead>
           <tr><th>Flag</th><th>Default</th><th>Description</th></tr>
@@ -584,6 +618,7 @@
           
         </tbody>
       </table>
+      </div>
 
       
     </div>
@@ -594,6 +629,7 @@
       <h2>Model Architecture</h2>
 
       
+      <div style="overflow-x: auto;">
       <table>
         <thead>
           <tr><th>Property</th><th>Value</th></tr>
@@ -624,6 +660,7 @@
           
         </tbody>
       </table>
+      </div>
 
       
     </div>
@@ -741,5 +778,28 @@ uv run python main.py --mode infer
 
 </main>
 
+<script>
+function toggleSidebar() {
+  var btn = document.getElementById('mobile-toggle');
+  var sidebar = document.querySelector('.sidebar');
+  var main = document.querySelector('.main');
+  var overlay = document.getElementById('sidebar-overlay');
+  var open = sidebar.classList.toggle('open');
+  overlay.classList.toggle('open');
+  btn.setAttribute('aria-expanded', open);
+}
+
+function closeSidebar() {
+  document.querySelector('.sidebar').classList.remove('open');
+  document.getElementById('sidebar-overlay').classList.remove('open');
+  document.getElementById('mobile-toggle').setAttribute('aria-expanded', 'false');
+}
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape' && document.querySelector('.sidebar.open')) {
+    closeSidebar();
+  }
+});
+</script>
 </body>
 </html>
