@@ -68,15 +68,13 @@ def generate_colab_script(args: argparse.Namespace) -> str:
     return f"""# TradingBot — Colab Training
 # Paste ALL of this into ONE Colab cell (GPU runtime) and run.
 
-import os, sys, warnings, shutil, time, subprocess, zipfile, base64, io
+import os, sys, warnings, shutil, time, zipfile, base64, io
 from pathlib import Path
 warnings.filterwarnings("ignore")
 start = time.time()
 
 print("Installing dependencies...")
-subprocess.run([sys.executable, "-m", "pip", "install", "-q",
-    "unlockedpd>=0.3.0", "yfinance>=1.4.1", "pyperclip>=1.11.0", "lxml>=6.1.1",
-], check=False)
+get_ipython().system("pip install -q unlockedpd>=0.3.0 yfinance>=1.4.1 pyperclip>=1.11.0 lxml>=6.1.1")
 
 import torch
 print(f"CUDA: {{torch.cuda.is_available()}} — Device: {{torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU'}}")

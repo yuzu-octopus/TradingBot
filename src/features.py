@@ -270,7 +270,9 @@ def compute_features_for_date(
             r1m = feat.rolling(WINDOW_1M).mean().loc[date]
             r1w = feat.rolling(WINDOW_1W).mean().loc[date]
             r1d = feat.loc[date]
-        except KeyError, TypeError:
+        except KeyError:
+            continue
+        except TypeError:
             continue
         cols = feat.columns[:N_FEATURES]
         stock_vec = []
