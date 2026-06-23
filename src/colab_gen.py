@@ -79,6 +79,10 @@ sys.path.insert(0, BASE)
 sys.argv = {flaglist}
 
 print(f"[{{time.time()-start:.0f}}s] Starting training...")
+# Clear cached modules so updated files are loaded on re-run
+for m in list(sys.modules):
+    if m.startswith(("config", "models", "src", "training")):
+        sys.modules.pop(m, None)
 exec(open("main.py").read())
 
 elapsed = time.time() - start
