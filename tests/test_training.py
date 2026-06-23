@@ -4,29 +4,29 @@ import torch
 from config import Config
 from models.stock_model import StockTransformer
 from training.threshold import optimize_threshold
-from training.train import listnet_loss, margin_ranking_loss, msrr_loss
+from training.train import listnet_loss, margin_ranking_loss, portfolio_mse_loss
 
 
-def test_msrr_loss_shape() -> None:
+def test_portfolio_mse_loss_shape() -> None:
     pred = torch.randn(4, 10)
     target = torch.randn(4, 10)
-    loss = msrr_loss(pred, target)
+    loss = portfolio_mse_loss(pred, target)
     assert loss.ndim == 0
     assert loss.item() > 0
 
 
-def test_msrr_loss_perfect_prediction() -> None:
+def test_portfolio_mse_loss_perfect_prediction() -> None:
     pred = torch.tensor([[1.0, -1.0]])
     target = torch.tensor([[0.05, -0.03]])
     weights = pred / pred.sum(dim=1, keepdim=True)
-    loss = msrr_loss(weights, target)
+    loss = portfolio_mse_loss(weights, target)
     assert loss.item() >= 0
 
 
-def test_msrr_loss_zero() -> None:
+def test_portfolio_mse_loss_zero() -> None:
     pred = torch.randn(4, 10)
     target = torch.zeros(4, 10)
-    loss = msrr_loss(pred, target)
+    loss = portfolio_mse_loss(pred, target)
     assert loss.item() == 1.0
 
 

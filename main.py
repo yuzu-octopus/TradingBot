@@ -7,7 +7,7 @@ from zoneinfo import ZoneInfo
 import numpy as np
 import pandas as pd
 
-from config import Config, get_sp500_tickers
+from config import Config, get_sp500_tickers, is_distributed
 from src.data_pipeline import fetch_stock_data
 from src.features import (
     build_feature_matrix,
@@ -24,7 +24,13 @@ from training.threshold import run_threshold_optimization
 from training.train import run_training
 
 
-def prepare_walk_forward_splits(features, targets, market_state, dates, config):
+def prepare_walk_forward_splits(
+    features: np.ndarray,
+    targets: np.ndarray,
+    market_state: np.ndarray,
+    dates: list[str],
+    config: Config,
+) -> int:
     if any(
         v <= 0
         for v in (
@@ -56,7 +62,7 @@ def prepare_walk_forward_splits(features, targets, market_state, dates, config):
         folds.append((train_idx, val_idx, test_idx, f"{current.year}-{test_end.year}"))
         current += pd.DateOffset(years=config.wf_step_size)
     Path(config.features_path).mkdir(parents=True, exist_ok=True)
-    for i, (tr, va, _te, _label) in enumerate(folds):
+    for i, (tr, va, te, _label) in enumerate(folds):
         np.savez(
             f"{config.features_path}/fold_{i}_train.npz",
             features=features[tr],
@@ -68,6 +74,12 @@ def prepare_walk_forward_splits(features, targets, market_state, dates, config):
             features=features[va],
             targets=targets[va],
             market_state=market_state[va],
+        )
+        np.savez(
+            f"{config.features_path}/fold_{i}_test.npz",
+            features=features[te],
+            targets=targets[te],
+            market_state=market_state[te],
         )
     print(f"  Created {len(folds)} walk-forward folds")
     return len(folds)
@@ -422,13 +434,19 @@ def main() -> None:
             config.tickers = tickers
 
     if args.mode == "train":
-        if args.walk_forward and n_folds <= 1 and n_folds == 0:
-            raw_data = fetch_stock_data(
-                config.tickers,
-                config.train_start,
-                config.test_end,
-                config.raw_data_path,
-            )
+        if args.walk_forward and n_folds == 0:
+            # Check if fold files already exist
+            fold_dir = Path(config.features_path)
+            existing_folds = list(fold_dir.glob("fold_*_train.npz"))
+            if existing_folds:
+                n_folds = len(existing_folds)
+            else:
+                raw_data = fetch_stock_data(
+                    config.tickers,
+                    config.train_start,
+                    config.test_end,
+                    config.raw_data_path,
+                )
             features, tickers, dates = build_feature_matrix(raw_data)
             config.tickers = tickers
             targets = build_targets(
@@ -444,6 +462,11 @@ def main() -> None:
         for fold in range(fold_count):
             if args.walk_forward:
                 print(f"\n=== Walk-Forward Fold {fold + 1}/{fold_count} ===")
+                fold_model_path = config.model_save_path.replace(
+                    ".pt", f"_fold{fold}.pt"
+                )
+                orig_save_path = config.model_save_path
+                config.model_save_path = fold_model_path
                 rt_args = {
                     "config": config,
                     "resume": args.resume,
@@ -457,6 +480,7 @@ def main() -> None:
                 from training.train import run_training as rt
 
                 rt(**rt_args)
+                config.model_save_path = orig_save_path
             else:
                 print(
                     f"\n=== Training (loss={args.loss}, seeds={args.seeds}, grad_accum={args.grad_accum}) ==="
@@ -469,6 +493,11 @@ def main() -> None:
                     grad_accum_steps=args.grad_accum,
                     pretrain_path=pretrain_path,
                 )
+
+        if is_distributed():
+            import torch.distributed as dist
+
+            dist.barrier()
 
         print("\n=== Threshold Optimization ===")
         buy_t, sell_t = run_threshold_optimization(config)

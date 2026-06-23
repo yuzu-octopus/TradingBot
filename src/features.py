@@ -22,7 +22,8 @@ def compute_rsi(series: pd.Series, period: int = 14) -> pd.Series:
     gain = delta.clip(lower=0).rolling(period).mean()
     loss = (-delta.clip(upper=0)).rolling(period).mean()
     rs = gain / loss.replace(0, np.nan)
-    return 100 - (100 / (1 + rs))
+    rsi = 100 - (100 / (1 + rs))
+    return rsi.fillna(50.0)
 
 
 def compute_macd(series: pd.Series) -> pd.DataFrame:
@@ -128,12 +129,13 @@ def build_targets(
                 continue
             ret = (next_close - cur_close) / cur_close
             targets[i, j] = np.clip(ret / max_return, -1, 1)
-    targets[np.isnan(targets)] = 0.0
     if clip_extreme:
         flat = targets.flatten()
-        lower = np.quantile(flat, LABEL_CLIP_PCT)
-        upper = np.quantile(flat, 1 - LABEL_CLIP_PCT)
+        valid = flat[~np.isnan(flat)]
+        lower = np.quantile(valid, LABEL_CLIP_PCT)
+        upper = np.quantile(valid, 1 - LABEL_CLIP_PCT)
         targets = np.clip(targets, lower, upper)
+    targets[np.isnan(targets)] = 0.0
     if cross_sectional_norm:
         targets = normalize_targets_cross_sectional(targets)
     return targets

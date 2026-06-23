@@ -1,12 +1,15 @@
-from datetime import UTC, datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import numpy as np
+import pandas as pd
 import torch
 
 from config import Config
 from src.data_pipeline import fetch_stock_data
 from src.features import compute_features_for_date, compute_market_state
 from src.utils import load_model, load_scaler
+
+_raw_data_cache: dict[int, dict[str, pd.DataFrame]] = {}
 
 
 def _last_business_day() -> str:
@@ -19,9 +22,12 @@ def _last_business_day() -> str:
 def run_inference(
     config: Config, buy_threshold: float = 0.5, sell_threshold: float = 0.5
 ) -> dict[str, dict]:
-    raw_data = fetch_stock_data(
-        config.tickers, config.train_start, config.test_end, config.raw_data_path
-    )
+    cache_key = hash(tuple(config.tickers))
+    if cache_key not in _raw_data_cache:
+        _raw_data_cache[cache_key] = fetch_stock_data(
+            config.tickers, config.train_start, config.test_end, config.raw_data_path
+        )
+    raw_data = _raw_data_cache[cache_key]
     target = _last_business_day()
     all_dates = sorted(raw_data[next(iter(raw_data))].index)
     all_date_strs = {str(d.date()) for d in all_dates}

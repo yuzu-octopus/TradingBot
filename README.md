@@ -30,7 +30,8 @@ uv run python main.py --mode infer --model colab/run1       # Evaluate a Colab-t
 uv run python main.py --mode trade --trade-interval 15      # Alpaca paper trading loop
 uv run python trade.py --interval 15                        # Standalone paper trading (Rich display)
 uv run python main.py --mode pretrain                       # Self-supervised pre-training
-uv run python main.py --colab-template --loss msrr --seeds 3 --grad-accum 4  # Generate Colab script
+torchrun --nproc_per_node=N uv run python main.py --mode train  # Multi-GPU (DDP)
+uv run python main.py --colab-template --loss msrr --seeds 3 --grad-accum 4  # Generate Colab/Kaggle script
 ```
 
 ### Options
@@ -38,7 +39,7 @@ uv run python main.py --colab-template --loss msrr --seeds 3 --grad-accum 4  # G
 | Flag | Default | Description |
 |------|---------|-------------|
 | `--mode` | `train` | `train`, `infer`, `pretrain`, or `trade` |
-| `--loss` | `mse` | `mse`, `msrr`, `margin`, `listnet` |
+| `--loss` | `mse` | `mse`, `msrr` (portfolio MSE), `margin`, `listnet` |
 | `--seeds` | `1` | Ensemble size (multiple random seeds) |
 | `--grad-accum` | `1` | Gradient accumulation steps |
 | `--resume` | off | Resume training from last checkpoint |
@@ -54,13 +55,18 @@ uv run python main.py --colab-template --loss msrr --seeds 3 --grad-accum 4  # G
 | `--pretrain` | off | Initialize training from pre-trained weights |
 | `--colab-template` | off | Generate self-contained Colab script |
 
-## Colab Training
+## Remote Training (Colab / Kaggle)
 
 ```bash
 uv run python main.py --colab-template --loss msrr --grad-accum 4 --seeds 3
 ```
 
-Generates a complete Colab script with all source code embedded. Copies to clipboard. Paste into a Colab GPU runtime, run, and download the model zip. Place in `data/models/colab/<run-name>/` and evaluate with `--model colab/<run-name>`.
+Generates a self-contained script with all source code embedded (copies to clipboard). The generated script **auto-detects** whether it's running on Colab or Kaggle at runtime and adapts paths, package installation, and output download accordingly.
+
+- **Colab:** Paste into a GPU cell → model downloads automatically via `files.download()`
+- **Kaggle:** Create a Notebook with GPU accelerator, paste into a cell → model saved to `/kaggle/working/`, download via Output sidebar
+
+Place model zip in `data/models/colab/<run-name>/` and evaluate with `--model colab/<run-name>`.
 
 ## Architecture
 
@@ -116,13 +122,28 @@ trade.py              → Standalone paper trading script (Rich display)
 
 Auto-detects and uses: CUDA (NVIDIA) → MPS (Apple Silicon) → CPU. Mixed precision training supported on both CUDA and MPS.
 
+### Multi-GPU (DDP)
+
+When multiple GPUs are available, use `torchrun` to launch DistributedDataParallel:
+
+```bash
+torchrun --nproc_per_node=N uv run python main.py --mode train
+```
+
+DDP auto-detects via `dist.is_initialized()` — no flags needed. Under DDP:
+- `DistributedSampler` shards the training data across GPUs
+- `unwrap_model()` is used for checkpoint save/load to keep files portable across DDP and non-DDP
+- Checkpoint saves and prints are gated to rank 0 only (no file races)
+- Per-seed checkpoint paths keep `--seeds N --resume` from leaking state between seeds
+- `TemporalOrderHead` is also wrapped in DDP during pre-training so all ranks evolve the same head
+
 ## Terminology
 
 ### MSE vs MSRR Loss
 
 **MSE** — predicts each stock's next-day return. Loss: `(predicted - actual)²` per stock. Simple, clean rankings.
 
-**MSRR** — outputs portfolio weights directly. Loss: `(1 - w'R)²`. Optimizes portfolio Sharpe. Noisier gradients but higher ceiling. "Avg SDF Sharpe 2.05" in spirituslab research.
+**Portfolio MSE** — penalizes deviation of the portfolio return from 1.0. Loss: `(1 - w'R)²`. Encourages prediction*return correlation. A heuristic approximation — does not directly optimize Sharpe ratio (variance is ignored). Formerly called "MSRR" in earlier versions.
 
 **Margin ranking** — pairwise loss, encourages correct ordering of stock returns. Good for ranking tasks.
 

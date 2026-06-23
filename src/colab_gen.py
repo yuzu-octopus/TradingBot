@@ -17,6 +17,17 @@ def _build_zip(files: dict[str, str]) -> str:
     return base64.b64encode(buf.getvalue()).decode()
 
 
+def _redact_secrets(content: str) -> str:
+    """Replace known secret field values with REDACTED for the generated script."""
+    import re
+
+    return re.sub(
+        r'(alpaca_api_key|alpaca_secret_key)\s*[=:]\s*["\'].*?["\']',
+        r'\1 = "REDACTED"',
+        content,
+    )
+
+
 def generate_colab_script(args: argparse.Namespace) -> str:
     mode = args.mode
     loss = args.loss
@@ -45,7 +56,7 @@ def generate_colab_script(args: argparse.Namespace) -> str:
         "training/threshold.py",
         "training/pretrain.py",
     ]:
-        files[p] = Path(p).read_text()
+        files[p] = _redact_secrets(Path(p).read_text())
     for p in ["models/__init__.py", "src/__init__.py", "training/__init__.py"]:
         files[p] = ""
 
@@ -88,7 +99,6 @@ else:
 import torch
 device_count = torch.cuda.device_count()
 device_name = torch.cuda.get_device_name(0) if device_count > 0 else "CPU"
-n_gpus = device_count
 print(f"CUDA: {{device_count > 0}} — {{device_count}} GPU(s) — {{device_name}}")
 
 BASE = "/kaggle/working/tradingbot" if IS_KAGGLE else "/content/tradingbot"

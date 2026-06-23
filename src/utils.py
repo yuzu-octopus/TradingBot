@@ -25,8 +25,11 @@ def create_model(config: Config, device: torch.device | None = None) -> nn.Modul
         rankglu_bottleneck=64,
         market_state_size=5,
     ).to(device)
-    if is_distributed() and device.type == "cuda":
-        model = DistributedDataParallel(model, device_ids=[device.index])
+    if is_distributed():
+        model = DistributedDataParallel(
+            model,
+            device_ids=[device.index] if device.type == "cuda" else None,
+        )
     return model
 
 

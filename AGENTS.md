@@ -40,12 +40,12 @@ uv run pytest                   # Tests
   `training.threshold` (sklearn, yfinance, alpaca-py don't ship stubs).
 
 
-## Colab template
+## Colab / Kaggle template
 
 ```bash
 uv run python main.py --colab-template --loss msrr --grad-accum 4 --seeds 3
 ```
-Generates a complete Colab script with all source embedded. Copies to clipboard. Paste into a Colab GPU runtime, run, then download the model zip to `data/models/colab/<run-name>/`. Evaluate with `--model colab/<run-name>`.
+Generates a self-contained script (copies to clipboard). Auto-detects Colab vs Kaggle at runtime — adapts working directory, package install, and model download. On Kaggle, use the Output sidebar to download results. On Colab, models download automatically. Evaluate with `--model colab/<run-name>`.
 
 ## Project structure
 
@@ -114,6 +114,7 @@ use `ZoneInfo("America/New_York")` consistently.
 
 - **Apple Silicon (MPS)**: Auto-detected — uses `mps` backend for GPU acceleration
 - **NVIDIA (CUDA)**: Auto-detected — uses `cuda` if available before falling back to MPS
+- **Multi-GPU (DDP)**: When launched via `torchrun`, auto-enables DistributedDataParallel with `DistributedSampler`, rank-0 checkpoint gating, and per-seed checkpoint isolation
 - **CPU fallback**: Works on any machine, just slower
 - **Mixed precision**: Supported on both CUDA and MPS — ~30-40% training speedup
 - Model is small (~478K params) — MPS handles full batches easily (~17 MB per batch)
@@ -130,6 +131,9 @@ use `ZoneInfo("America/New_York")` consistently.
 | Flag | Default | Description |
 |------|---------|-------------|
 | `--mode` | `train` | `train`, `infer`, `pretrain`, or `trade` |
+| `--pretrain` | off | Initialize training from pre-trained weights |
+| `--pretrain-epochs` | `100` | Override pretrain epochs |
+| `--show-script` | off | Print colab script to terminal |
 | `--trade-interval` | `15` | Minutes between trading cycles |
 | `--trade-headless` | off | Run paper trading without Rich display |
 | `--trade-buy-qty` | `10` | Shares to buy per long signal |
@@ -143,4 +147,5 @@ use `ZoneInfo("America/New_York")` consistently.
 | `--walk-forward` | off | Walk-forward validation (sliding windows) |
 | `--force-features` | off | Rebuild feature matrix from scratch |
 | `--model <path>` | — | Load model from `data/models/<path>/best.pt` |
-| `--colab-template` | off | Generate self-contained Colab training script |
+| `--colab-template` | off | Generate self-contained script (Colab + Kaggle auto-detect) |
+| `torchrun` | — | `torchrun --nproc_per_node=N uv run python main.py --mode train` for DDP |

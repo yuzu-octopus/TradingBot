@@ -5,7 +5,6 @@ dataset type, without needing an actual torchrun process group.
 """
 
 from unittest.mock import patch
-from typing import Any
 
 import torch
 from torch.utils.data import TensorDataset
@@ -48,9 +47,9 @@ def test_unwrap_passthrough_for_plain_module() -> None:
 
 
 def test_save_checkpoint_writes_unwrapped_keys(tmp_path) -> None:
-    """save_checkpoint must write the unwrapped state_dict so checkpoints are
-    portable across DDP and non-DDP inference paths. Plain model is the
-    identity case of unwrap, so verifying its keys is sufficient.
+    """save_checkpoint must write the unwrapped state_dict.
+
+    Checkpoints must be portable across DDP and non-DDP inference.
     """
     from torch import optim
 
@@ -79,12 +78,7 @@ def test_save_checkpoint_writes_unwrapped_keys(tmp_path) -> None:
 
 
 def test_save_load_round_trip_restores_state(tmp_path) -> None:
-    """End-to-end: write a checkpoint, then load it into a second model; the
-    second model must end up identical to the first. Random-init equality
-    assertion is intentionally omitted (xavier_uniform_init on a tiny model
-    can produce numerically close weights across different seeds):
-    we verify STATE equality instead, which is what the round-trip contract
-    actually depends on."""
+    """End-to-end save+load checkpoint round trip restores identical state."""
     from torch import optim
 
     torch.manual_seed(1)
@@ -120,11 +114,7 @@ def test_save_load_round_trip_restores_state(tmp_path) -> None:
 
 
 def test_distributed_sampler_accepts_tensor_dataset() -> None:
-    """Construct (do not iterate) a DistributedSampler against a TensorDataset;
-    the earlier version passed raw tensors/ndarrays which broke both runtime and
-    mypy. Construction alone is sufficient to verify the type, since iteration
-    requires a real process group.
-    """
+    """DistributedSampler construction with TensorDataset validates type."""
     from torch.utils.data import DistributedSampler
 
     ds = TensorDataset(torch.randn(20, 4), torch.randn(20, 4))
@@ -151,9 +141,7 @@ def test_is_distributed_true_when_mocked() -> None:
 
 
 def test_per_seed_checkpoint_path_isolated() -> None:
-    """--seeds N --resume must not leak state between seeds: each train_seed
-    call uses its own path so DDP ranks and parallel-seed runs don't collide.
-    """
+    """Each train_seed call uses its own checkpoint_path."""
     from training.train import train_seed
 
     cfg_calls: list[str] = []
@@ -161,10 +149,11 @@ def test_per_seed_checkpoint_path_isolated() -> None:
     # Patch train() to capture the checkpoint_path argument without running it.
     import training.train as train_module
 
-    def _stub_train(config: Config, *args: Any, **kwargs: Any) -> tuple[Any, Any]:
-        cfg_calls.append(kwargs.get("checkpoint_path", ""))
-        # Return a dummy (model, scaler) so the outer wrapper still type-checks.
-        return None, None  # type: ignore[return-value]
+    def _stub_train(
+        config: Config, *args: object, **kwargs: object
+    ) -> tuple[None, None]:
+        cfg_calls.append(str(kwargs.get("checkpoint_path", "")))
+        return None, None
 
     with patch.object(train_module, "train", side_effect=_stub_train):
         for seed in (1, 2, 3):

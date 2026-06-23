@@ -9,7 +9,6 @@ from torch.utils.data import DataLoader, DistributedSampler, TensorDataset
 from tqdm import tqdm
 
 from config import Config, get_device, get_rank, is_distributed
-from models.stock_model import StockTransformer
 from src.utils import create_model, save_scaler, scale_features, unwrap_model
 
 CHECKPOINT_PATH = "data/models/checkpoint.pt"
@@ -55,7 +54,12 @@ def load_checkpoint(
     return ckpt["epoch"], ckpt["best_val_loss"], ckpt["patience_counter"]
 
 
-def msrr_loss(pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+def portfolio_mse_loss(pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+    """Penalizes portfolio return deviation from 1.0.
+
+    Heuristic approximation: encourages prediction*return correlation.
+    Does NOT directly optimize Sharpe ratio (variance is ignored).
+    """
     portfolio_return = (pred * target).sum(dim=1)
     return ((1 - portfolio_return) ** 2).mean()
 
@@ -103,6 +107,17 @@ def train(
     )
     val_scaled = scale_features(val_features, scaler)
 
+    if is_distributed():
+        import torch.distributed as dist
+
+        mean_t = torch.tensor(scaler.mean_, dtype=torch.float32)
+        var_t = torch.tensor(scaler.var_, dtype=torch.float32)
+        dist.broadcast(mean_t, src=0)
+        dist.broadcast(var_t, src=0)
+        scaler.mean_ = mean_t.numpy()
+        scaler.var_ = var_t.numpy()
+        scaler.scale_ = np.sqrt(scaler.var_)
+
     train_t = torch.tensor(train_scaled, dtype=torch.float32)
     train_y = torch.tensor(train_targets, dtype=torch.float32)
     val_t = torch.tensor(val_scaled, dtype=torch.float32)
@@ -146,7 +161,7 @@ def train(
     amp_scaler = torch.amp.GradScaler(device.type) if use_amp else None
 
     if loss_mode == "msrr":
-        criterion = msrr_loss
+        criterion = portfolio_mse_loss
         base_lr = config.learning_rate * 0.75
         body = [
             p
@@ -235,7 +250,7 @@ def train(
                 amp_scaler.scale(loss).backward()
             else:
                 loss.backward()
-            if (step + 1) % grad_accum_steps == 0:
+            if (step + 1) % grad_accum_steps == 0 or step == len(train_loader) - 1:
                 if use_amp and amp_scaler is not None:
                     amp_scaler.unscale_(optimizer)
                 torch.nn.utils.clip_grad_norm_(

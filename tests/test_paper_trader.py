@@ -110,16 +110,16 @@ def test_sell_round_trips_fractional_long_position(
 
 
 def test_sell_round_trips_fractional_short_position(trader: PaperTrader) -> None:
-    """Short position qty = -3.7 → BUY 4 shares to close (round(abs), not int(abs))."""
+    """Short position qty = -3.7 → BUY 3 shares (floor(abs), never sell more than held)."""
     trader.trade_client.get_all_positions.return_value = [
         _position("TSLA", -3.7, side="short")
     ]
     _set_quotes(trader, {"TSLA": 200.0})
     _set_account(trader, equity=100_000.0)
     trades = trader.reconcile({"TSLA": {"signal": "SELL", "score": -0.9}})
-    assert trades == [("TSLA", 4, "SELL")]
+    assert trades == [("TSLA", 3, "SELL")]
     sent_order = trader.trade_client.submit_order.call_args.kwargs["order_data"]
-    assert sent_order.qty == 4
+    assert sent_order.qty == 3
     assert sent_order.side == OrderSide.BUY
 
 

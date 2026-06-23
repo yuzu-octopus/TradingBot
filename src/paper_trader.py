@@ -1,4 +1,5 @@
 import logging
+import math
 import os
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -15,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 class PaperTrader:
-    def __init__(self, config: Config):
+    def __init__(self, config: Config) -> None:
         key = config.alpaca_api_key or os.environ.get("ALPACA_API_KEY", "")
         secret = config.alpaca_secret_key or os.environ.get("ALPACA_SECRET_KEY", "")
         if not key or not secret:
@@ -28,7 +29,7 @@ class PaperTrader:
         self._positions_cache: dict[str, dict] = {}
         self._account_cache: dict = {}
 
-    def get_account(self):
+    def get_account(self) -> dict:
         acct = self.trade_client.get_account()
         self._account_cache = {
             "equity": float(acct.equity),
@@ -38,7 +39,7 @@ class PaperTrader:
         }
         return self._account_cache
 
-    def get_positions(self):
+    def get_positions(self) -> dict[str, dict]:
         positions = self.trade_client.get_all_positions()
         self._positions_cache = {
             p.symbol: {
@@ -60,7 +61,8 @@ class PaperTrader:
         try:
             req = StockLatestQuoteRequest(symbol_or_symbols=symbols)
             quotes = self.data_client.get_stock_latest_quote(req)
-        except Exception:
+        except Exception as e:
+            logger.warning("Quote fetch failed: %s", e)
             return {}
         result = {}
         for sym in symbols:
@@ -84,20 +86,24 @@ class PaperTrader:
     def next_close(self) -> datetime:
         return self.trade_client.get_clock().next_close  # type: ignore[union-attr]
 
-    def cancel_open_orders(self, symbol: str | None = None):
-        if symbol:
-            orders = self.trade_client.get_orders(
-                filter=GetOrdersRequest(symbols=[symbol] if symbol else None)
-            )
-        else:
-            orders = self.trade_client.get_orders()
+    def cancel_open_orders(self, symbol: str | None = None) -> None:
+        try:
+            if symbol:
+                orders = self.trade_client.get_orders(
+                    filter=GetOrdersRequest(symbols=[symbol] if symbol else None)
+                )
+            else:
+                orders = self.trade_client.get_orders()
+        except Exception as e:
+            logger.warning("Failed to fetch open orders: %s", e)
+            return
         for o in orders:
             try:
                 self.trade_client.cancel_order_by_id(order_id=o.id)  # type: ignore[union-attr]
             except Exception as e:
                 logger.warning("Cancel failed for %s: %s", o.symbol, e)  # type: ignore[union-attr]
 
-    def submit_market_order(self, symbol: str, qty: int, side: OrderSide):
+    def submit_market_order(self, symbol: str, qty: int, side: OrderSide) -> dict:
         order = MarketOrderRequest(
             symbol=symbol,
             qty=qty,
@@ -106,7 +112,7 @@ class PaperTrader:
         )
         return self.trade_client.submit_order(order_data=order)
 
-    def reconcile(self, signals: dict[str, dict]):
+    def reconcile(self, signals: dict[str, dict]) -> list:
         """Reconcile signals with the broker. Returns a list of trade tuples.
 
         Each tuple is `(ticker, qty, action)` where action is one of
@@ -164,7 +170,7 @@ class PaperTrader:
                     trades.append((ticker, 0, f"BUY_FAIL:{e}"))
 
             elif signal == "SELL" and has_pos:
-                held = round(abs(pos["qty"]))
+                held = math.floor(abs(pos["qty"]))
                 qty = (
                     min(held, self.config.trade_sell_qty)
                     if held > self.config.trade_sell_qty

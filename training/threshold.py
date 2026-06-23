@@ -2,7 +2,7 @@ from pathlib import Path
 
 import numpy as np
 import torch
-from sklearn.isotonic import IsotonicRegression
+from sklearn.linear_model import LogisticRegression
 
 from config import Config
 from src.utils import load_model, load_scaler, scale_features
@@ -29,12 +29,12 @@ def optimize_threshold(
     flat_scores = scores.flatten()
     flat_targets = val_targets.flatten()
     mask = np.abs(flat_targets) > 1e-6
-    cal_scores = np.full_like(flat_scores, 0.0)
+    cal_scores = flat_scores.copy()
     if mask.sum() > 10:
-        iso = IsotonicRegression(out_of_bounds="clip")
-        cal_scores[mask] = iso.fit_transform(
-            flat_scores[mask], np.sign(flat_targets[mask])
-        )
+        lr = LogisticRegression(C=1.0, class_weight="balanced", max_iter=1000)
+        lr.fit(flat_scores[mask].reshape(-1, 1), (flat_targets[mask] > 0).astype(int))
+        cal_probs = lr.predict_proba(flat_scores.reshape(-1, 1))[:, 1]
+        cal_scores = 2.0 * cal_probs - 1.0
     cal_scores = cal_scores.reshape(scores.shape)
 
     candidates = np.arange(0, 0.5, 0.01)

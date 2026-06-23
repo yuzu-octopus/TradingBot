@@ -12,14 +12,14 @@ from tqdm import tqdm
 
 from config import Config, get_device, get_rank, is_distributed
 from src.utils import create_model, unwrap_model
-from training.train import listnet_loss, margin_ranking_loss, msrr_loss
+from training.train import listnet_loss, margin_ranking_loss, portfolio_mse_loss
 
 PRETRAIN_CHECKPOINT_PATH = "data/models/pretrain/checkpoint.pt"
 
 
 def _csr_loss(pred, target, loss_mode):
     if loss_mode == "msrr":
-        return msrr_loss(pred, target)
+        return portfolio_mse_loss(pred, target)
     if loss_mode == "margin":
         return margin_ranking_loss(pred, target)
     if loss_mode == "listnet":
@@ -85,9 +85,10 @@ def pretrain(
     top_head: nn.Module = TemporalOrderHead(
         config.pretrain_top_n_days, math.factorial(config.pretrain_top_n_days)
     ).to(device)
-    if is_distributed() and device.type == "cuda":
+    if is_distributed():
         top_head = nn.parallel.DistributedDataParallel(
-            top_head, device_ids=[device.index]
+            top_head,
+            device_ids=[device.index] if device.type == "cuda" else None,
         )
 
     mpp_x, mpp_y, mpp_mask = prepare_mpp(features, targets, config.pretrain_mask_ratio)
