@@ -15,7 +15,7 @@
   <meta name="twitter:title" content="TradingBot | Multi-stock ML trading bot">
   <meta name="twitter:description" content="Multi-stock ML trading bot using a decoder-only Transformer with RankGLU output and market-guided gating. Learns inter-stock relationships across the S&P 500.">
   
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20viewBox%3D%220%200%2064%2064%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%0A%20%20%3Crect%20width%3D%2264%22%20height%3D%2264%22%20rx%3D%2212%22%20fill%3D%22%23282a36%22/%3E%0A%20%20%3Crect%20x%3D%2218%22%20y%3D%2222%22%20width%3D%2228%22%20height%3D%2228%22%20rx%3D%224%22%20fill%3D%22%2350fa7b%22/%3E%0A%20%20%3Crect%20x%3D%2230%22%20y%3D%2210%22%20width%3D%224%22%20height%3D%2240%22%20rx%3D%222%22%20fill%3D%22%2350fa7b%22/%3E%0A%20%20%3Crect%20x%3D%2218%22%20y%3D%2222%22%20width%3D%2212%22%20height%3D%2228%22%20rx%3D%224%22%20fill%3D%22%23bd93f9%22%20opacity%3D%220.65%22/%3E%0A%3C/svg%3E%0A">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2064%2064%22%3E%0A%20%20%3Crect%20width%3D%2264%22%20height%3D%2264%22%20rx%3D%2212%22%20fill%3D%22%23282a36%22/%3E%0A%20%20%3Cline%20x1%3D%2216%22%20y1%3D%228%22%20x2%3D%2216%22%20y2%3D%2256%22%20stroke%3D%22%236272a4%22%20stroke-width%3D%220.5%22%20opacity%3D%220.3%22/%3E%0A%20%20%3Cline%20x1%3D%2232%22%20y1%3D%228%22%20x2%3D%2232%22%20y2%3D%2256%22%20stroke%3D%22%236272a4%22%20stroke-width%3D%220.5%22%20opacity%3D%220.3%22/%3E%0A%20%20%3Cline%20x1%3D%2248%22%20y1%3D%228%22%20x2%3D%2248%22%20y2%3D%2256%22%20stroke%3D%22%236272a4%22%20stroke-width%3D%220.5%22%20opacity%3D%220.3%22/%3E%0A%20%20%3Cpolyline%20points%3D%228%2C44%2020%2C30%2032%2C36%2044%2C18%2056%2C24%22%20fill%3D%22none%22%20stroke%3D%22%2350fa7b%22%20stroke-width%3D%224%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22/%3E%0A%20%20%3Ccircle%20cx%3D%2256%22%20cy%3D%2224%22%20r%3D%224%22%20fill%3D%22%23bd93f9%22/%3E%0A%3C/svg%3E%0A">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
@@ -469,9 +469,17 @@
   <div class="sidebar-brand">
     <div class="logo"><svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
   <rect width="64" height="64" rx="14" fill="#44475a"/>
-  <rect x="18" y="22" width="28" height="28" rx="4" fill="#50fa7b"/>
-  <rect x="30" y="10" width="4" height="40" rx="2" fill="#50fa7b"/>
-  <rect x="18" y="22" width="12" height="28" rx="4" fill="#bd93f9" opacity="0.65"/>
+  <line x1="12" y1="8" x2="12" y2="56" stroke="#6272a4" stroke-width="0.5" opacity="0.35"/>
+  <line x1="24" y1="8" x2="24" y2="56" stroke="#6272a4" stroke-width="0.5" opacity="0.35"/>
+  <line x1="36" y1="8" x2="36" y2="56" stroke="#6272a4" stroke-width="0.5" opacity="0.35"/>
+  <line x1="48" y1="8" x2="48" y2="56" stroke="#6272a4" stroke-width="0.5" opacity="0.35"/>
+  <polyline points="8,48 18,34 28,40 38,20 48,26 56,12" fill="none" stroke="#50fa7b" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="8" cy="48" r="2.5" fill="#bd93f9"/>
+  <circle cx="18" cy="34" r="2.5" fill="#bd93f9"/>
+  <circle cx="28" cy="40" r="2.5" fill="#bd93f9"/>
+  <circle cx="38" cy="20" r="2.5" fill="#bd93f9"/>
+  <circle cx="48" cy="26" r="2.5" fill="#bd93f9"/>
+  <circle cx="56" cy="12" r="4" fill="#bd93f9"/>
 </svg>
 </div>
     <div class="name">TradingBot</div>
