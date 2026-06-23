@@ -275,7 +275,7 @@ def compute_features_for_date(
         except TypeError:
             continue
         cols = feat.columns[:N_FEATURES]
-        stock_vec = []
+        stock_vec: list[float] = []
         for feat_series in [r1y, r1m, r1w, r1d]:
             stock_vec.extend(
                 float(feat_series[col]) if not pd.isna(feat_series[col]) else 0.0

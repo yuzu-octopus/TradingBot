@@ -1,3 +1,5 @@
+from datetime import UTC, datetime, timedelta, timezone
+
 import numpy as np
 import torch
 
@@ -7,13 +9,23 @@ from src.features import compute_features_for_date, compute_market_state
 from src.utils import load_model, load_scaler
 
 
+def _last_business_day() -> str:
+    d = datetime.now(UTC).date() - timedelta(days=1)
+    while d.weekday() >= 5:
+        d -= timedelta(days=1)
+    return str(d)
+
+
 def run_inference(
     config: Config, buy_threshold: float = 0.5, sell_threshold: float = 0.5
 ) -> dict[str, dict]:
     raw_data = fetch_stock_data(
         config.tickers, config.train_start, config.test_end, config.raw_data_path
     )
-    latest_date = str(sorted(raw_data[next(iter(raw_data))].index)[-1].date())
+    target = _last_business_day()
+    all_dates = sorted(raw_data[next(iter(raw_data))].index)
+    all_date_strs = {str(d.date()) for d in all_dates}
+    latest_date = target if target in all_date_strs else str(all_dates[-1].date())
     features, tickers = compute_features_for_date(raw_data, latest_date)
     features = features[np.newaxis, :, :]
 

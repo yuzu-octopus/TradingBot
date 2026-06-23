@@ -78,3 +78,11 @@ class Config:
     pretrain_mask_ratio: float = 0.2
     pretrain_top_n_days: int = 3
     pretrain_weights_path: str = "data/models/pretrain/best.pt"
+
+    alpaca_api_key: str = ""
+    alpaca_secret_key: str = ""
+    alpaca_paper: bool = True
+    trade_interval_minutes: int = 15
+    trade_max_position_pct: float = 0.02
+    trade_buy_qty: int = 10
+    trade_sell_qty: int = 10

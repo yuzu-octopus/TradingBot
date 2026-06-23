@@ -190,19 +190,19 @@ def pretrain(
                 l_csr = _csr_loss(pred_csr, y_csr, loss_mode)
 
             w1, w2, w3 = loss_weights
-            loss = (w1 * l_mpp + w2 * l_top + w3 * l_csr) / (grad_accum_steps or 1) * 3
+            loss = (w1 * l_mpp + w2 * l_top + w3 * l_csr) / 3 / (grad_accum_steps or 1)
 
-            if use_amp:
+            if use_amp and amp_scaler is not None:
                 amp_scaler.scale(loss).backward()
             else:
                 loss.backward()
 
             steps_since_update = (step + 1) % max(grad_accum_steps, 1)
             if steps_since_update == 0 or step == n_batches - 1:
-                if use_amp:
+                if use_amp and amp_scaler is not None:
                     amp_scaler.unscale_(optimizer)
                 torch.nn.utils.clip_grad_norm_(all_params, config.max_grad_norm)
-                if use_amp:
+                if use_amp and amp_scaler is not None:
                     amp_scaler.step(optimizer)
                     amp_scaler.update()
                 else:
@@ -212,7 +212,8 @@ def pretrain(
             total_loss += loss.item() * max(grad_accum_steps, 1)
 
         scheduler.step()
-        avg_loss = total_loss / (n_batches // max(grad_accum_steps, 1) + 1)
+        n_accum_steps = max(1, (n_batches + grad_accum_steps - 1) // grad_accum_steps)
+        avg_loss = total_loss / n_accum_steps
 
         if avg_loss < best_loss:
             best_loss = avg_loss

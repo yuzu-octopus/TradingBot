@@ -208,15 +208,15 @@ def train(
                 else:
                     pred = model(batch_x)
                 loss = criterion(pred, batch_y) / grad_accum_steps
-            if use_amp:
+            if use_amp and amp_scaler is not None:
                 amp_scaler.scale(loss).backward()
             else:
                 loss.backward()
             if (step + 1) % grad_accum_steps == 0:
-                if use_amp:
+                if use_amp and amp_scaler is not None:
                     amp_scaler.unscale_(optimizer)
                 torch.nn.utils.clip_grad_norm_(model.parameters(), config.max_grad_norm)
-                if use_amp:
+                if use_amp and amp_scaler is not None:
                     amp_scaler.step(optimizer)
                     amp_scaler.update()
                 else:
@@ -275,8 +275,8 @@ def train_seed(
     torch.manual_seed(seed)
     np.random.seed(seed)
 
-    resume_epoch = resume_best_loss = resume_patience = 0
-    resume_best_loss = float("inf")
+    resume_epoch = resume_patience = 0
+    resume_best_loss: float = float("inf")
     if resume and Path(CHECKPOINT_PATH).exists():
         ckpt = torch.load(CHECKPOINT_PATH, weights_only=True, map_location="cpu")
         resume_epoch = ckpt["epoch"]
@@ -313,14 +313,14 @@ def run_training(
 ) -> tuple[StockTransformer, StandardScaler]:
     train_path = train_path or f"{config.features_path}/train.npz"
     val_path = val_path or f"{config.features_path}/val.npz"
-    train_path = Path(train_path)
-    val_path = Path(val_path)
+    train_path_obj: Path = Path(train_path)  # type: ignore[arg-type]
+    val_path_obj: Path = Path(val_path)  # type: ignore[arg-type]
 
-    with np.load(train_path) as data:
+    with np.load(train_path_obj) as data:
         train_features = data["features"]
         train_targets = data["targets"]
         train_market = data.get("market_state")
-    with np.load(val_path) as data:
+    with np.load(val_path_obj) as data:
         val_features = data["features"]
         val_targets = data["targets"]
         val_market = data.get("market_state")

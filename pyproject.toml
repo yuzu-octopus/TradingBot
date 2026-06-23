@@ -13,13 +13,26 @@ dependencies = [
     "scikit-learn>=1.9.0",
     "torch>=2.12.1",
     "tqdm>=4.68.3",
-    "unlockedpd>=0.3.0",
     "yfinance>=1.4.1",
+    "unlockedpd>=0.3.0",
+    "alpaca-py>=0.43.0",
+    "rich>=14.0.0",
+]
+
+[tool.pytest.ini_options]
+filterwarnings = [
+    "ignore::DeprecationWarning:numba.*",
+    "ignore::pandas.errors.Pandas4Warning",
 ]
 
 [dependency-groups]
 dev = [
     "mypy>=2.1.0",
+    "pandas-stubs>=3.0.3.260530",
     "pytest>=9.1.1",
     "ruff>=0.15.18",
+    "types-pyperclip>=1.11.0.20260508",
+    "types-pyyaml>=6.0.12.20260518",
+    "types-requests>=2.33.0.20260518",
+    "types-tqdm>=4.68.0.20260608",
 ]

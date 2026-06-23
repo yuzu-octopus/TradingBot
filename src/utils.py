@@ -60,3 +60,13 @@ def scale_features(features: np.ndarray, scaler: StandardScaler) -> np.ndarray:
     scaled = scaler.transform(features.reshape(-1, F))
     scaled = np.nan_to_num(scaled, nan=0.0)
     return scaled.reshape(T, S, F)
+
+
+def load_threshold(config: Config) -> tuple[float, float]:
+    path = Path(f"{config.features_path}/threshold.txt")
+    if path.exists():
+        parts = path.read_text().strip().split(",")
+        if len(parts) > 1:
+            return float(parts[0]), float(parts[1])
+        return float(parts[0]), float(parts[0])
+    return 0.5, 0.5

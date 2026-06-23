@@ -27,6 +27,9 @@ uv run python main.py --mode train --walk-forward           # Walk-forward valid
 uv run python main.py --mode train --resume                 # Resume from checkpoint
 uv run python main.py --mode infer                          # Get today's trading signals
 uv run python main.py --mode infer --model colab/run1       # Evaluate a Colab-trained model
+uv run python main.py --mode trade --trade-interval 15      # Alpaca paper trading loop
+uv run python trade.py --interval 15                        # Standalone paper trading (Rich display)
+uv run python main.py --mode pretrain                       # Self-supervised pre-training
 uv run python main.py --colab-template --loss msrr --seeds 3 --grad-accum 4  # Generate Colab script
 ```
 
@@ -34,7 +37,7 @@ uv run python main.py --colab-template --loss msrr --seeds 3 --grad-accum 4  # G
 
 | Flag | Default | Description |
 |------|---------|-------------|
-| `--mode` | `train` | `train` or `infer` |
+| `--mode` | `train` | `train`, `infer`, `pretrain`, or `trade` |
 | `--loss` | `mse` | `mse`, `msrr`, `margin`, `listnet` |
 | `--seeds` | `1` | Ensemble size (multiple random seeds) |
 | `--grad-accum` | `1` | Gradient accumulation steps |
@@ -42,6 +45,13 @@ uv run python main.py --colab-template --loss msrr --seeds 3 --grad-accum 4  # G
 | `--walk-forward` | off | Walk-forward validation (sliding chronological windows) |
 | `--force-features` | off | Rebuild feature matrix from scratch |
 | `--model <path>` | — | Load model from `data/models/<path>/best.pt` |
+| `--trade-interval` | `15` | Minutes between trading cycles |
+| `--trade-headless` | off | Run paper trading without Rich display |
+| `--trade-buy-qty` | `10` | Shares to buy per long signal |
+| `--trade-sell-qty` | `10` | Shares to sell per short signal |
+| `--buy-threshold` | — | Override buy threshold |
+| `--sell-threshold` | — | Override sell threshold |
+| `--pretrain` | off | Initialize training from pre-trained weights |
 | `--colab-template` | off | Generate self-contained Colab script |
 
 ## Colab Training
@@ -61,9 +71,12 @@ models/stock_model.py → StockTransformer (decoder-only, RankGLU output, Market
 src/data_pipeline.py  → yfinance data fetching with CSV caching
 src/features.py       → Window feature engineering + parallel build
 src/inference.py      → On-demand inference with market state
-src/utils.py          → Model factory, scaler save/load
+src/paper_trader.py   → Alpaca paper trading wrapper
+src/utils.py          → Model factory, scaler save/load, threshold loading
 training/train.py     → Training loop with mixed precision + checkpoint/resume
+training/pretrain.py  → Self-supervised pre-training (D6)
 training/threshold.py → Post-training Sharpe-based threshold optimization
+trade.py              → Standalone paper trading script (Rich display)
 ```
 
 ## How it works
@@ -130,6 +143,31 @@ Replaces the linear output head with a residual bottleneck GLU: a direct linear 
 ### Market-State Gating
 
 SPY market features (returns, volatility) are used to rescale each stock's features before the transformer. This lets the model adapt to bull/bear/high-volatility regimes. From MASTER (AAAI 2024).
+
+## Paper Trading
+
+Model scores can be evaluated in real-time via Alpaca's paper trading API (commission-free, $100K virtual account).
+
+### Setup
+
+1. Sign up at [alpaca.markets](https://alpaca.markets) → Dashboard → API Keys
+2. Generate **paper** API keys (not live)
+3. Add to `.env`:
+   ```
+   ALPACA_API_KEY=pk_...
+   ALPACA_SECRET_KEY=...
+   ALPACA_PAPER=True
+   ```
+
+### Run
+
+```bash
+uv run python trade.py --interval 15           # Rich live display (Dracula theme)
+uv run python trade.py --interval 15 --headless  # Logs only
+uv run python main.py --mode trade --trade-interval 15  # Via main.py
+```
+
+The trading loop: run inference on latest data → get BUY/SELL/HOLD signals → reconcile with Alpaca paper positions → display P&L → repeat every N minutes.
 
 ### Walk-Forward Validation
 

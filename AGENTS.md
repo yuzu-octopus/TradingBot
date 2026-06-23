@@ -15,6 +15,9 @@ uv run python main.py --mode train --force-features  # Rebuild feature matrix fr
 uv run python main.py --mode train --walk-forward    # Walk-forward validation (3-year windows)
 uv run python main.py --mode train --loss margin     # Ranking loss (pairwise margin)
 uv run python main.py --mode train --loss listnet    # Listwise ranking loss
+uv run python trade.py --interval 15                 # Alpaca paper trading (Rich display)
+uv run python trade.py --interval 15 --headless      # Paper trading (logs only)
+uv run python main.py --mode trade --trade-interval 15  # Paper trading via main.py
 ```
 
 Python 3.14 via `.python-version`. uv manages everything — no manual `.venv/bin/activate`.
@@ -49,7 +52,9 @@ src/
   data_pipeline.py   # Fetch OHLCV via yfinance
   features.py        # Window feature engineering + parallel build + market state
   inference.py       # On-demand inference (with market state)
+  paper_trader.py    # Alpaca paper trading wrapper (TradingClient, reconcile, loop)
   utils.py           # Shared: model factory, scaler save/load, feature scaling
+trade.py             # Standalone Alpaca paper trading script with Rich display
 config.py            # Dataclass: tickers, windows, model params
 main.py              # Entry point: --mode train|infer, --loss mse|msrr|margin|listnet
 ```
@@ -61,7 +66,8 @@ main.py              # Entry point: --mode train|infer, --loss mse|msrr|margin|l
 - **Market-guided gating**: SPY market state rescales features per day. From MASTER (AAAI 2024).
 - **Cross-sectional z-score normalization**: Targets normalized per day (mean=0, std=1). Standard for ranking-aware models.
 - **Threshold post-optimization**: Model outputs raw scores (-1 to 1). Post-training optimization finds separate buy/sell thresholds maximizing Sharpe ratio.
-- **No secrets**: No API keys, no env vars — stock data is public market data.
+- **Alpaca paper trading**: Model scores → paper orders via Alpaca API. yfinance for training data, Alpaca for live execution. See `.env.example` for API keys.
+- **No secrets**: No API keys, no env vars — stock data is public market data (except Alpaca API keys for paper trading; keep in `.env`).
 
 ## Hardware acceleration
 
@@ -82,7 +88,13 @@ main.py              # Entry point: --mode train|infer, --loss mse|msrr|margin|l
 
 | Flag | Default | Description |
 |------|---------|-------------|
-| `--mode` | `train` | `train` or `infer` |
+| `--mode` | `train` | `train`, `infer`, `pretrain`, or `trade` |
+| `--trade-interval` | `15` | Minutes between trading cycles |
+| `--trade-headless` | off | Run paper trading without Rich display |
+| `--trade-buy-qty` | `10` | Shares to buy per long signal |
+| `--trade-sell-qty` | `10` | Shares to sell per short signal |
+| `--buy-threshold` | — | Override buy threshold |
+| `--sell-threshold` | — | Override sell threshold |
 | `--loss` | `mse` | `mse`, `msrr`, `margin`, `listnet` |
 | `--seeds` | `1` | Ensemble seeds (train N, average predictions) |
 | `--grad-accum` | `1` | Gradient accumulation steps |

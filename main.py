@@ -1,5 +1,8 @@
 import argparse
+import time
+from datetime import datetime
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 import numpy as np
 import pandas as pd
@@ -13,11 +16,25 @@ from src.features import (
     load_cached_features,
     save_cached_features,
 )
+from src.inference import run_inference
+from src.paper_trader import PaperTrader
+from src.utils import load_threshold
+from trade import build_layout, make_trade_table
 from training.threshold import run_threshold_optimization
 from training.train import run_training
 
 
-def prepare_walk_forward_splits(features, targets, dates, config):
+def prepare_walk_forward_splits(features, targets, market_state, dates, config):
+    if any(
+        v <= 0
+        for v in (
+            config.wf_window_size,
+            config.wf_val_size,
+            config.wf_test_size,
+        )
+    ):
+        msg = "wf_window_size, wf_val_size, and wf_test_size must be positive"
+        raise ValueError(msg)
     date_objs = [pd.Timestamp(d) for d in dates]
     start = pd.Timestamp(config.train_start)
     end = pd.Timestamp(config.test_end)
@@ -39,21 +56,24 @@ def prepare_walk_forward_splits(features, targets, dates, config):
         folds.append((train_idx, val_idx, test_idx, f"{current.year}-{test_end.year}"))
         current += pd.DateOffset(years=config.wf_step_size)
     Path(config.features_path).mkdir(parents=True, exist_ok=True)
-    for i, (tr, va, te, _label) in enumerate(folds):
+    for i, (tr, va, _te, _label) in enumerate(folds):
         np.savez(
-            f"{config.features_path}/fold_{i}.npz",
-            train_features=features[tr],
-            train_targets=targets[tr],
-            val_features=features[va],
-            val_targets=targets[va],
-            test_features=features[te],
-            test_targets=targets[te],
+            f"{config.features_path}/fold_{i}_train.npz",
+            features=features[tr],
+            targets=targets[tr],
+            market_state=market_state[tr],
+        )
+        np.savez(
+            f"{config.features_path}/fold_{i}_val.npz",
+            features=features[va],
+            targets=targets[va],
+            market_state=market_state[va],
         )
     print(f"  Created {len(folds)} walk-forward folds")
     return len(folds)
 
 
-def prepare_data(config: Config) -> None:
+def prepare_data(config: Config) -> int:
     print("\n=== Data Preparation ===")
     raw_data = fetch_stock_data(
         config.tickers, config.train_start, config.test_end, config.raw_data_path
@@ -100,7 +120,9 @@ def prepare_data(config: Config) -> None:
         f"Split: {n_train} train + {n_val} val + {n_test} test = {n_train + n_val + n_test} dates"
     )
 
-    n_folds = prepare_walk_forward_splits(features, targets, dates, config)
+    n_folds = prepare_walk_forward_splits(
+        features, targets, market_state, dates, config
+    )
     return n_folds
 
 
@@ -121,22 +143,95 @@ def _split_date_range(
     )
 
 
-def load_threshold(config: Config) -> tuple[float, float]:
-    path = Path(f"{config.features_path}/threshold.txt")
-    if path.exists():
-        parts = path.read_text().strip().split(",")
-        return float(parts[0]), float(parts[1]) if len(parts) > 1 else (
-            float(parts[0]),
-            float(parts[0]),
-        )
-    return 0.5, 0.5
-
-
 def print_signals(results: dict[str, dict]) -> None:
     print(f"\n{'Ticker':<8} {'Score':<8} {'Signal':<8}")
     print("-" * 24)
     for ticker, info in results.items():
         print(f"{ticker:<8} {info['score']:<8.4f} {info['signal']:<8}")
+
+
+def run_paper_trading(config: Config, args: argparse.Namespace) -> None:
+    config.trade_interval_minutes = args.trade_interval
+    config.trade_buy_qty = args.trade_buy_qty
+    config.trade_sell_qty = args.trade_sell_qty
+
+    trader = PaperTrader(config)
+    nyc = ZoneInfo("America/New_York")
+    buy_t, sell_t = load_threshold(config)
+    if args.buy_threshold is not None:
+        buy_t = args.buy_threshold
+    if args.sell_threshold is not None:
+        sell_t = args.sell_threshold
+
+    console = None
+    if not args.trade_headless:
+        from rich.console import Console
+        from rich.theme import Theme
+
+        console = Console(
+            theme=Theme(
+                {
+                    "info": "#bd93f9",
+                    "success": "#50fa7b",
+                    "warning": "#ffb86c",
+                    "error": "#ff5555",
+                    "highlight": "#8be9fd",
+                    "dim": "#6272a4",
+                    "title": "#ff79c6",
+                }
+            )
+        )
+
+    cycle = 0
+    while True:
+        try:
+            cycle += 1
+            now = datetime.now(nyc)
+            now_str = now.strftime("%Y-%m-%d %H:%M:%S ET")
+
+            if not trader.market_open():
+                nxt = trader.next_open()
+                wait = (
+                    nxt.replace(tzinfo=None) - now.replace(tzinfo=None)
+                ).total_seconds()
+                wait_m = max(1, int(wait / 60))
+                print(f"Market closed. Next open ~{wait_m} min")
+                time.sleep(min(wait, 300))
+                continue
+
+            account = trader.get_account()
+            signals = run_inference(config, buy_threshold=buy_t, sell_threshold=sell_t)
+            positions = trader.get_positions()
+            trades = trader.reconcile(signals)
+
+            if not args.trade_headless and console:
+                table = make_trade_table(
+                    signals,
+                    positions,
+                    trades,
+                    account,
+                    cycle,
+                    args.trade_interval * 60,
+                    now_str,
+                )
+                console.clear()
+                console.print(build_layout(table))
+            else:
+                n_trades = len([t for t in trades if "FAIL" not in str(t[2])])
+                print(
+                    f"[{now_str}] Cycle #{cycle} | "
+                    f"Equity: ${account.get('equity', 0):,.0f} | "
+                    f"Trades: {n_trades}"
+                )
+
+            time.sleep(args.trade_interval * 60)
+
+        except KeyboardInterrupt:
+            print("\nShutting down...")
+            break
+        except Exception as e:
+            print(f"Cycle error: {e}")
+            time.sleep(30)
 
 
 def main() -> None:
@@ -186,9 +281,9 @@ def main() -> None:
     )
     parser.add_argument(
         "--mode",
-        choices=["train", "infer", "pretrain"],
+        choices=["train", "infer", "pretrain", "trade"],
         default="train",
-        help="train = train model + optimize threshold | infer = trading signals | pretrain = D6 pre-training",
+        help="train = train model + optimize threshold | infer = trading signals | pretrain = D6 pre-training | trade = Alpaca paper trading loop",
     )
     parser.add_argument(
         "--resume",
@@ -238,6 +333,41 @@ def main() -> None:
         type=str,
         default=None,
         help="Load model from data/models/<path>/best.pt (e.g. 'colab/run1' or 'top/run1')",
+    )
+    parser.add_argument(
+        "--trade-interval",
+        type=int,
+        default=15,
+        help="Minutes between trading cycles (default: 15)",
+    )
+    parser.add_argument(
+        "--trade-headless",
+        action="store_true",
+        help="Run paper trading without Rich display",
+    )
+    parser.add_argument(
+        "--trade-buy-qty",
+        type=int,
+        default=10,
+        help="Shares to buy per long signal (default: 10)",
+    )
+    parser.add_argument(
+        "--trade-sell-qty",
+        type=int,
+        default=10,
+        help="Shares to sell per short signal (default: 10)",
+    )
+    parser.add_argument(
+        "--buy-threshold",
+        type=float,
+        default=None,
+        help="Override buy threshold",
+    )
+    parser.add_argument(
+        "--sell-threshold",
+        type=float,
+        default=None,
+        help="Override sell threshold",
     )
     parser.add_argument(
         "--pretrain",
@@ -304,21 +434,24 @@ def main() -> None:
             targets = build_targets(
                 raw_data, config.tickers, dates, config.label_max_return
             )
-            n_folds = prepare_walk_forward_splits(features, targets, dates, config)
+            market_state = compute_market_state(raw_data, dates)
+            n_folds = prepare_walk_forward_splits(
+                features, targets, market_state, dates, config
+            )
 
         pretrain_path = config.pretrain_weights_path if args.pretrain else None
         fold_count = n_folds if args.walk_forward else 1
         for fold in range(fold_count):
             if args.walk_forward:
                 print(f"\n=== Walk-Forward Fold {fold + 1}/{fold_count} ===")
-                np.load(f"{config.features_path}/fold_{fold}.npz")
                 rt_args = {
                     "config": config,
                     "resume": args.resume,
                     "loss_mode": args.loss,
                     "n_seeds": args.seeds,
                     "grad_accum_steps": args.grad_accum,
-                    "train_path": f"{config.features_path}/fold_{fold}.npz",
+                    "train_path": f"{config.features_path}/fold_{fold}_train.npz",
+                    "val_path": f"{config.features_path}/fold_{fold}_val.npz",
                     "pretrain_path": pretrain_path,
                 }
                 from training.train import run_training as rt
@@ -360,6 +493,10 @@ def main() -> None:
             resume=args.resume,
             grad_accum_steps=args.grad_accum,
         )
+
+    elif args.mode == "trade":
+        print("\n=== Paper Trading ===")
+        run_paper_trading(config, args)
 
     else:
         print("\n=== Inference ===")
