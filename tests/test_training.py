@@ -47,6 +47,16 @@ def test_listnet_loss() -> None:
 
 
 def test_optimize_threshold_runs() -> None:
+    import json
+    from pathlib import Path
+
+    # Create a dummy scaler for optimize_threshold to load
+    scaler_path = Path("data/features/scaler.json")
+    scaler_path.parent.mkdir(parents=True, exist_ok=True)
+    dummy_mean = np.zeros(120).tolist()
+    dummy_var = np.ones(120).tolist()
+    scaler_path.write_text(json.dumps({"mean": dummy_mean, "var": dummy_var}))
+
     model = StockTransformer(
         n_stocks=5, n_features=120, d_model=32, nhead=2, num_layers=1
     )

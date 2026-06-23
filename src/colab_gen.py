@@ -94,7 +94,7 @@ def _run():
     for m in list(sys.modules):
         if m.startswith(("config", "models", "src", "training")):
             sys.modules.pop(m, None)
-    exec(open("main.py").read())
+    exec(open("main.py").read(), globals())
 
 {'print(f"[{time.time()-start:.0f}s] Pre-training step..."); sv = sys.argv; sys.argv = [a for a in sv if a != "--pretrain"]; _run(); print(f"[{time.time()-start:.0f}s] Pre-training done. Starting fine-tune..."); sys.argv = sv' if do_pretrain else ""}
 _run()
