@@ -17,6 +17,7 @@ dependencies = [
     "unlockedpd>=0.3.0",
     "alpaca-py>=0.43.0",
     "rich>=14.0.0",
+    "textual>=8.2.7",
 ]
 
 [tool.pytest.ini_options]
