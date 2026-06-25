@@ -184,6 +184,12 @@ class TradingApp(App):
     BINDINGS: ClassVar[list] = [
         ("r", "refresh", "Refresh"),
         ("s", "toggle_asset", "Stocks/Crypto"),
+        ("+", "interval_up", "Faster"),
+        ("-", "interval_down", "Slower"),
+        ("[", "threshold_down", "Buy\u2193"),
+        ("]", "threshold_up", "Buy\u2191"),
+        ("{", "sell_threshold_down", "Sell\u2193"),
+        ("}", "sell_threshold_up", "Sell\u2191"),
         ("c", "search_themes", "Theme"),
         ("h", "show_help", "Help"),
         ("q", "quit", "Quit"),
@@ -316,7 +322,8 @@ class TradingApp(App):
             now_str = datetime.now(self._nyc).strftime("%H:%M:%S ET")
             spark = self._sparkline(self._equity_history)
             status.update(
-                f"Cycle #{self._cycle} | {now_str} | Next: ~{self._interval}s | {spark}"
+                f"Cycle #{self._cycle} | {now_str} | Next: ~{self._interval // 60}m | "
+                f"Buy\u2248{self._buy_t:.2f} Sell\u2248{self._sell_t:.2f} | {spark}"
             )
             self._refresh_buttons()
         except Exception as e:
@@ -382,6 +389,30 @@ class TradingApp(App):
     def action_refresh(self) -> None:
         self.notify("Refreshing...", severity="information")
         self.run_worker(self._refresh_cycle())
+
+    def action_interval_up(self) -> None:
+        self._interval = min(3600, self._interval + 60)
+        self.notify(f"Interval: {self._interval // 60}m", severity="information")
+
+    def action_interval_down(self) -> None:
+        self._interval = max(60, self._interval - 60)
+        self.notify(f"Interval: {self._interval // 60}m", severity="information")
+
+    def action_threshold_up(self) -> None:
+        self._buy_t = min(0.99, round(self._buy_t + 0.05, 2))
+        self.notify(f"Buy threshold: {self._buy_t:.2f}", severity="information")
+
+    def action_threshold_down(self) -> None:
+        self._buy_t = max(0.01, round(self._buy_t - 0.05, 2))
+        self.notify(f"Buy threshold: {self._buy_t:.2f}", severity="information")
+
+    def action_sell_threshold_up(self) -> None:
+        self._sell_t = min(0.99, round(self._sell_t + 0.05, 2))
+        self.notify(f"Sell threshold: {self._sell_t:.2f}", severity="information")
+
+    def action_sell_threshold_down(self) -> None:
+        self._sell_t = max(0.01, round(self._sell_t - 0.05, 2))
+        self.notify(f"Sell threshold: {self._sell_t:.2f}", severity="information")
 
     def action_toggle_asset(self) -> None:
         self._switch_asset("crypto" if self._asset_class == "stocks" else "stocks")
