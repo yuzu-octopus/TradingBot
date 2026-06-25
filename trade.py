@@ -1,5 +1,3 @@
-import subprocess
-import sys
 import time
 from argparse import ArgumentParser
 from datetime import datetime
@@ -17,46 +15,18 @@ from src.inference import run_inference
 from src.paper_trader import PaperTrader
 from src.utils import load_threshold
 
-
-def _detect_theme() -> Theme:
-    try:
-        r = subprocess.run(
-            ["defaults", "read", "-g", "AppleInterfaceStyle"],
-            check=False,
-            capture_output=True,
-            text=True,
-            timeout=1,
-        )
-        dark = r.stdout.strip() == "Dark"
-    except Exception:
-        dark = sys.platform != "darwin"
-    if dark:
-        return Theme(
-            {
-                "info": "#bd93f9",
-                "success": "#50fa7b",
-                "warning": "#ffb86c",
-                "error": "#ff5555",
-                "highlight": "#8be9fd",
-                "dim": "#6272a4",
-                "title": "#ff79c6",
-                "border": "#bd93f9",
-            }
-        )
-    return Theme(
-        {
-            "info": "#8250df",
-            "success": "#1a7f37",
-            "warning": "#9a6700",
-            "error": "#cf222e",
-            "highlight": "#0550ae",
-            "dim": "#8b949e",
-            "title": "#bf3989",
-            "border": "#8250df",
-        }
-    )
-
-
+_THEME = Theme(
+    {
+        "info": "bright_magenta",
+        "success": "green",
+        "warning": "yellow",
+        "error": "red",
+        "highlight": "cyan",
+        "dim": "bright_black",
+        "title": "bright_red",
+        "border": "bright_magenta",
+    }
+)
 console = None
 
 
@@ -221,9 +191,8 @@ def main():
     if args.sell_threshold is not None:
         sell_t = args.sell_threshold
 
-    global console  # noqa: PLW0603
     if not args.headless:
-        console = Console(theme=_detect_theme())
+        console = Console(theme=_THEME)
 
     trader = PaperTrader(config)
     nyc = ZoneInfo("America/New_York")
