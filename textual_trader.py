@@ -1,7 +1,48 @@
+"""Textual TUI for paper trading --- stocks and crypto."""
+# ruff: noqa: E402
+
+import os
+import sys
+
+# Monkey-patch tqdm BEFORE any import touches it.
+# tqdm.__new__ creates a multiprocessing RLock that triggers the resource
+# tracker, which calls stderr.fileno(). Textual returns -1, causing
+# "bad value in fds_to_keep" on Python 3.14.
+import tqdm.std as _tqdm_std
+
+
+class _NoopTqdm:
+    def __init__(self, *a, **kw):  # noqa: ANN002,ANN003
+        pass
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *a):  # noqa: ANN002
+        pass
+
+    def __iter__(self):
+        return iter([])
+
+    def __len__(self):
+        return 0
+
+    def __contains__(self, _):
+        return False
+
+    def __getattr__(self, _):
+        return lambda *a, **kw: None  # noqa: ARG005
+
+    @staticmethod
+    def write(s, file=None, end="\n", nolock=False) -> None:  # noqa: ARG004  # noqa: ARG004
+        print(s, file=file or sys.stderr, end=end)
+
+
+_tqdm_std.tqdm = _NoopTqdm
+
 """Textual TUI for paper trading — stocks and crypto."""
 
 import asyncio
-import os
 from argparse import ArgumentParser
 from datetime import datetime
 from functools import partial
@@ -427,7 +468,6 @@ class TradingApp(App):
 
 def main() -> None:
     _load_dotenv()
-    os.environ.setdefault("TQDM_DISABLE", "1")
     parser = ArgumentParser(description="Textual TUI paper trader")
     parser.add_argument(
         "--interval", type=int, default=15, help="Minutes between cycles"
