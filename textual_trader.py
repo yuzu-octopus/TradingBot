@@ -55,7 +55,15 @@ from textual.command import Hit, Hits, Provider
 from textual.containers import Horizontal
 from textual.reactive import reactive
 from textual.screen import ModalScreen
-from textual.widgets import Button, DataTable, Footer, Header, Static
+from textual.widgets import (
+    Button,
+    DataTable,
+    Footer,
+    Header,
+    RichLog,
+    Sparkline,
+    Static,
+)
 
 from config import Config, get_sp500_tickers
 from src.inference import run_inference
@@ -214,6 +222,10 @@ class TradingApp(App):
         color: $text;
     }
     DataTable { height: 1fr; }
+    RichLog { height: 6; margin: 0 1; }
+    Sparkline { height: 1; }
+    .flash-up { background: $success 20%; }
+    .flash-down { background: $error 20%; }
     #status-bar {
         height: 1;
         padding: 0 1;
@@ -254,6 +266,7 @@ class TradingApp(App):
         self._nyc = ZoneInfo("America/New_York")
         self._cycle = 0
         self._equity_history: list[float] = []
+        self._err_strikes = 0
         self._asset_class = config.asset_class
 
     def compose(self) -> ComposeResult:
@@ -270,6 +283,8 @@ class TradingApp(App):
             yield MetricCard("Positions")
             yield MetricCard("Cycle")
         yield DataTable(id="signals")
+        yield Sparkline(id="equity-spark")
+        yield RichLog(id="trade-log", highlight=True, max_lines=10)
         yield Static("Ready", id="status-bar")
         yield Footer()
 
@@ -361,13 +376,28 @@ class TradingApp(App):
 
             self._update_metrics(account, positions)
             self._update_table(table, signals, positions, trades, account)
+            log = self.query_one("#trade-log", RichLog)
+            for t in trades:
+                ts = datetime.now(self._nyc).strftime("%H:%M:%S")
+                act = t[2]
+                sym = t[0]
+                qty = t[1]
+                if act == "BUY":
+                    log.write(f"[green]{ts} BUY {int(qty)} {sym}[/]")
+                elif act == "SELL":
+                    log.write(f"[red]{ts} SELL {int(qty)} {sym}[/]")
+                elif "FAIL" in act:
+                    log.write(f"[red]{ts} {act} {sym}[/]")
+                elif act in ("NO_ASK", "MAX_POS_CAP", "NO_EQUITY"):
+                    log.write(f"[yellow]{ts} {act} {sym}[/]")
             now_str = datetime.now(self._nyc).strftime("%H:%M:%S ET")
-            spark = self._sparkline(self._equity_history)
+            self.query_one("#equity-spark", Sparkline).data = self._equity_history[-50:]
             status.update(
                 f"Cycle #{self._cycle} | {now_str} | Next: ~{self._interval // 60}m | "
-                f"Buy\u2248{self._buy_t:.2f} Sell\u2248{self._sell_t:.2f} | {spark}"
+                f"Buy\u2248{self._buy_t:.2f} Sell\u2248{self._sell_t:.2f}"
             )
             self._refresh_buttons()
+            self._err_strikes = 0
         except Exception as e:
             status.update(f"Error: {e}")
             self.notify(str(e), severity="error")
@@ -405,9 +435,9 @@ class TradingApp(App):
             )
             pl = pos["unrealized_pl"] if pos else 0
             pl_str = (
-                f"[green]${pl:+,.0f}[/]"
+                f"[green]\u25b2${pl:+,.0f}[/]"
                 if pl > 0
-                else (f"[red]${pl:+,.0f}[/]" if pl < 0 else "\u2014")
+                else (f"[red]\u25bc-${abs(pl):,.0f}[/]" if pl < 0 else "\u2014")
             )
             trade_str = "\u2014"
             if t:
@@ -419,14 +449,6 @@ class TradingApp(App):
                 else:
                     trade_str = f"[yellow]{act}[/]"
             table.add_row(ticker, pos_str, alloc, f"{score:+.4f}", trade_str, pl_str)
-
-    def _sparkline(self, values, width=20):
-        if not values:
-            return ""
-        mn, mx = min(values), max(values)
-        rng = mx - mn or 1
-        chars = "\u2581\u2582\u2583\u2584\u2585\u2586\u2587\u2588"
-        return "".join(chars[min(7, int((v - mn) / rng * 7))] for v in values[-width:])
 
     def action_refresh(self) -> None:
         self.notify("Refreshing...", severity="information")
