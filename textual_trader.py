@@ -1,8 +1,11 @@
 """Textual TUI for paper trading --- stocks and crypto."""
 # ruff: noqa: E402
 
+import logging
 import os
 import sys
+
+logger = logging.getLogger(__name__)
 
 # Monkey-patch tqdm BEFORE any import touches it.
 # tqdm.__new__ creates a multiprocessing RLock that triggers the resource
@@ -380,7 +383,8 @@ class TradingApp(App):
             self._update_metrics(account, positions)
             self._update_table(table, signals, positions, trades, account)
             log = self.query_one("#trade-log", RichLog)
-            log.write("[dim]" + "-" * 40 + "[/]")
+            if trades:
+                log.write("[dim]" + "-" * 40 + "[/]")
             for t in trades:
                 ts = datetime.now(self._nyc).strftime("%H:%M:%S")
                 act = t[2]
@@ -431,10 +435,10 @@ class TradingApp(App):
         prev = self._prev_equity if hasattr(self, "_prev_equity") else 0
         curr = account.get("equity", 0)
         card = self.query_one("#metric-row").children[0]
-        if prev and curr:
+        if prev and curr and curr != prev:
             cls = "flash-up" if curr > prev else "flash-down"
             card.add_class(cls)
-            card.set_timer(0.3, lambda: card.remove_class(cls))
+            card.set_timer(0.3, lambda c=cls: card.remove_class(c))
         self._prev_equity = curr
         self.query_one("#metric-row").children[0].value = f"${curr:,.0f}"
         self.query_one("#metric-row").children[
@@ -504,8 +508,8 @@ class TradingApp(App):
                 self._interval = d.get("interval", self._interval)
                 self._buy_t = d.get("buy_t", self._buy_t)
                 self._sell_t = d.get("sell_t", self._sell_t)
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning("Failed to load session (using defaults): %s", e)
 
     def action_interval_up(self) -> None:
         self._interval = min(3600, self._interval + 60)
