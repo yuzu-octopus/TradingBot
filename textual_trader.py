@@ -377,6 +377,7 @@ class TradingApp(App):
             self._update_metrics(account, positions)
             self._update_table(table, signals, positions, trades, account)
             log = self.query_one("#trade-log", RichLog)
+            log.write("[dim]" + "-" * 40 + "[/]")
             for t in trades:
                 ts = datetime.now(self._nyc).strftime("%H:%M:%S")
                 act = t[2]
