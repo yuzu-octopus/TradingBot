@@ -57,6 +57,9 @@ def _fold_metadata(config: Config) -> dict:
         "test_end": config.test_end,
         "label_max_return": config.label_max_return,
         "n_features": config.n_features,
+        "asset_class": config.asset_class,
+        "crypto_pairs": config.crypto_pairs,
+        "n_stocks": config.n_stocks,
     }
 
 
@@ -139,13 +142,19 @@ def prepare_walk_forward_splits(
 def prepare_data(config: Config) -> int:
     print("\n=== Data Preparation ===")
     raw_data = _fetch_data(config)
-    cached = load_cached_features(config.raw_data_path)
+    cached = load_cached_features(config.raw_data_path, cache_dir=config.features_path)
     if cached is not None:
         features, tickers, dates = cached
         print(f"  Loaded cached feature matrix: {features.shape}")
     else:
         features, tickers, dates = build_feature_matrix(raw_data)
-        save_cached_features(features, tickers, dates, config.raw_data_path)
+        save_cached_features(
+            features,
+            tickers,
+            dates,
+            config.raw_data_path,
+            cache_dir=config.features_path,
+        )
     config.tickers = tickers
     print(
         f"  ({len(tickers)} stocks, {features.shape[2]} features, {features.shape[0]} dates)"
@@ -261,7 +270,7 @@ def run_paper_trading(config: Config, args: argparse.Namespace) -> None:
                 ).total_seconds()
                 wait_m = max(1, int(wait / 60))
                 print(f"Market closed. Next open ~{wait_m} min")
-                time.sleep(min(wait, 300))
+                time.sleep(max(0.0, min(wait, 300)))
                 continue
 
             account = trader.get_account()
@@ -503,7 +512,9 @@ def main() -> None:
                     p.unlink()
         n_folds = prepare_data(config)
     elif has_features:
-        cached = load_cached_features(config.raw_data_path)
+        cached = load_cached_features(
+            config.raw_data_path, cache_dir=config.features_path
+        )
         if cached is not None:
             _, tickers, _ = cached
             config.tickers = tickers

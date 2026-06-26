@@ -45,7 +45,7 @@ def optimize_threshold(
             f"Note: raw scores hit {max_abs:.2f}; threshold scan capped at 2.0. "
             "Consider retraining or rescaling."
         )
-    candidates = np.arange(0.0, upper + 0.01, 0.01)
+    candidates = np.arange(0.0, upper + 0.05, 0.05)
     best_buy = best_sell = 0.0
     best_sharpe = -float("inf")
 
@@ -76,5 +76,7 @@ def run_threshold_optimization(config: Config) -> tuple[float, float]:
     model = load_model(config)
     buy_t, sell_t = optimize_threshold(config, model, val_features, val_targets)
 
-    Path(f"{config.features_path}/threshold.txt").write_text(f"{buy_t},{sell_t}")
+    tmp = Path(f"{config.features_path}/threshold.tmp")
+    tmp.write_text(f"{buy_t},{sell_t}")
+    tmp.rename(Path(f"{config.features_path}/threshold.txt"))
     return buy_t, sell_t

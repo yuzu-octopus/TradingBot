@@ -269,10 +269,6 @@ def compute_features_for_date(
     return np.nan_to_num(feature_matrix, nan=0.0), tickers
 
 
-FEATURE_CACHE_PATH = "data/features/matrix.npz"
-HASH_CACHE_PATH = "data/features/matrix_hash.txt"
-
-
 def _data_hash(raw_data_dir: str) -> str:
     hasher = hashlib.sha256()
     for f in sorted(Path(raw_data_dir).iterdir()):
@@ -282,24 +278,35 @@ def _data_hash(raw_data_dir: str) -> str:
     return hasher.hexdigest()[:16]
 
 
+FEATURE_CACHE_PATH = "data/features/matrix.npz"
+HASH_CACHE_PATH = "data/features/matrix_hash.txt"
+
+
 def load_cached_features(
     raw_data_dir: str,
+    cache_dir: str = "data/features",
 ) -> tuple[np.ndarray, list[str], list[str]] | None:
-    if not Path(FEATURE_CACHE_PATH).exists() or not Path(HASH_CACHE_PATH).exists():
+    mat_path = f"{cache_dir}/matrix.npz"
+    hash_path = f"{cache_dir}/matrix_hash.txt"
+    if not Path(mat_path).exists() or not Path(hash_path).exists():
         return None
-    cached_hash = Path(HASH_CACHE_PATH).read_text().strip()
+    cached_hash = Path(hash_path).read_text().strip()
     if cached_hash != _data_hash(raw_data_dir):
         return None
-    data = np.load(FEATURE_CACHE_PATH)
+    data = np.load(mat_path)
     return data["features"], data["tickers"].tolist(), data["dates"].tolist()
 
 
 def save_cached_features(
-    features: np.ndarray, tickers: list[str], dates: list[str], raw_data_dir: str
+    features: np.ndarray,
+    tickers: list[str],
+    dates: list[str],
+    raw_data_dir: str,
+    cache_dir: str = "data/features",
 ) -> None:
-    Path(FEATURE_CACHE_PATH).parent.mkdir(parents=True, exist_ok=True)
-    Path(HASH_CACHE_PATH).write_text(_data_hash(raw_data_dir))
-    np.savez_compressed(
-        FEATURE_CACHE_PATH, features=features, tickers=tickers, dates=dates
-    )
-    print(f"  Cached feature matrix to {FEATURE_CACHE_PATH}")
+    mat_path = f"{cache_dir}/matrix.npz"
+    hash_path = f"{cache_dir}/matrix_hash.txt"
+    Path(mat_path).parent.mkdir(parents=True, exist_ok=True)
+    Path(hash_path).write_text(_data_hash(raw_data_dir))
+    np.savez_compressed(mat_path, features=features, tickers=tickers, dates=dates)
+    print(f"  Cached feature matrix to {mat_path}")

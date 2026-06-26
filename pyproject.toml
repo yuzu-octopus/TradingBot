@@ -29,6 +29,9 @@ filterwarnings = [
 [tool.mypy]
 strict_optional = true
 
+# Silence import-untyped noise from unstubbed libraries
+disable_error_code = "import-untyped"
+
 # `src.features` chains Series.rolling / .replace / .iloc operations that
 # `pandas-stubs` flags with extremely precise overload mismatches that are
 # not runtime bugs. Silence only the overloaded-operator & index errors,

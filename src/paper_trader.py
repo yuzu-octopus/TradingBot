@@ -97,14 +97,11 @@ class PaperTrader:
     def next_close(self) -> datetime:
         return self.trade_client.get_clock().next_close  # type: ignore[union-attr]
 
-    def cancel_open_orders(self, symbol: str | None = None) -> None:
+    def cancel_open_orders(self, symbol: str) -> None:
         try:
-            if symbol:
-                orders = self.trade_client.get_orders(
-                    filter=GetOrdersRequest(symbols=[symbol] if symbol else None)
-                )
-            else:
-                orders = self.trade_client.get_orders()
+            orders = self.trade_client.get_orders(
+                filter=GetOrdersRequest(symbols=[symbol])
+            )
         except Exception as e:
             logger.warning("Failed to fetch open orders: %s", e)
             return
@@ -171,9 +168,11 @@ class PaperTrader:
                 ask = quotes.get(ticker, {}).get("ask")
                 if ask is None or ask <= 0:
                     logger.warning(
-                        "No usable ask for %s; skipping position-cap check", ticker
+                        "No usable ask for %s; refusing buy without cap check", ticker
                     )
-                elif qty * ask > max_pos_value:
+                    trades.append((ticker, 0, "NO_ASK"))
+                    continue
+                if qty * ask > max_pos_value:
                     trades.append((ticker, 0, "MAX_POS_CAP"))
                     continue
                 try:
@@ -188,11 +187,7 @@ class PaperTrader:
                 # with round(3.9) = 4 would buy 4, leaving a spurious +0.1 long
                 # position). floor leaves any fractional remainder in place.
                 held = math.floor(abs(pos["qty"]))
-                qty = (
-                    min(held, self.config.trade_sell_qty)
-                    if held > self.config.trade_sell_qty
-                    else held
-                )
+                qty = min(held, self.config.trade_sell_qty)
                 side = OrderSide.SELL if pos["side"] == "long" else OrderSide.BUY
                 try:
                     self.submit_market_order(ticker, qty, side)

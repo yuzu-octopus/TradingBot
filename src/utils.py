@@ -70,6 +70,7 @@ def save_scaler(scaler: StandardScaler, path: str) -> None:
 def load_scaler(path: str) -> StandardScaler:
     data = json.loads(Path(path).read_text())
     scaler = StandardScaler()
+    assert len(data["mean"]) > 0, f"Corrupted scaler at {path}: empty mean"
     scaler.mean_ = np.array(data["mean"])
     scaler.var_ = np.array(data["var"])
     scaler.scale_ = np.sqrt(scaler.var_)

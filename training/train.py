@@ -107,21 +107,6 @@ def train(
     )
     val_scaled = scale_features(val_features, scaler)
 
-    if is_distributed():
-        import torch.distributed as dist
-
-        # Each rank independently fit its own StandardScaler on its data
-        # partition. Broadcasting the aggregated mean/var from rank 0 keeps
-        # the downstream loss curves consistent across ranks. broadcast() has
-        # an implicit barrier so subsequent .numpy() reads are post-sync.
-        mean_t = torch.tensor(scaler.mean_, dtype=torch.float32)
-        var_t = torch.tensor(scaler.var_, dtype=torch.float32)
-        dist.broadcast(mean_t, src=0)
-        dist.broadcast(var_t, src=0)
-        scaler.mean_ = mean_t.numpy()
-        scaler.var_ = var_t.numpy()
-        scaler.scale_ = np.sqrt(scaler.var_)
-
     train_t = torch.tensor(train_scaled, dtype=torch.float32)
     train_y = torch.tensor(train_targets, dtype=torch.float32)
     val_t = torch.tensor(val_scaled, dtype=torch.float32)

@@ -218,7 +218,7 @@ def main():
                 ).total_seconds()
                 wait_m = max(1, int(wait / 60))
                 print(f"Market closed. Next open ~{wait_m} min")
-                time.sleep(min(wait, 300))
+                time.sleep(max(0.0, min(wait, 300)))
                 continue
 
             account = trader.get_account()

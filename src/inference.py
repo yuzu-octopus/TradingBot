@@ -34,6 +34,8 @@ def run_inference(
     target = _last_business_day()
     cache_key = (tuple(config.tickers), target)
     if cache_key not in _raw_data_cache:
+        if len(_raw_data_cache) > 1:
+            _raw_data_cache.clear()
         _raw_data_cache[cache_key] = (
             fetch_crypto_data(
                 config.tickers,

@@ -146,18 +146,15 @@ def test_cancel_filters_by_signal_ticker(trader: PaperTrader) -> None:
     )
 
 
-def test_cancel_does_not_call_blancket_cancel(trader: PaperTrader) -> None:
-    """cancel_open_orders(symbol=None) must NOT be implicitly called from reconcile."""
+def test_cancel_requires_symbol(trader: PaperTrader) -> None:
+    """cancel_open_orders now requires a symbol — no blanket-cancel path exists."""
     trader.trade_client.get_all_positions.return_value = []
-    _set_quotes(trader, {})  # No quotes needed
+    _set_quotes(trader, {})
     _set_account(trader, equity=100_000.0)
     trader.reconcile({"AAPL": {"signal": "BUY", "score": 0.9}})
-    blanket = [
-        c
-        for c in trader.trade_client.get_orders.call_args_list
-        if "filter" not in c.kwargs and not c.args
-    ]
-    assert not blanket, f"Unexpected blanket cancel call detected: {blanket}"
+    # All get_orders calls must have a symbol filter
+    for call in trader.trade_client.get_orders.call_args_list:
+        assert "symbols" in str(call), f"Unfiltered cancel call: {call}"
 
 
 # ───────────────────────── F1.4 partial close bounded by trade_sell_qty ─────────────────────────
@@ -230,13 +227,13 @@ def test_position_cap_no_equity_blocks_trade(trader: PaperTrader) -> None:
 def test_position_cap_misses_ask_logs_warning(
     trader: PaperTrader, caplog: pytest.LogCaptureFixture
 ) -> None:
-    """If Alpaca returns None for ask, log a warning and proceed (paper mode)."""
+    """If Alpaca returns None for ask, refuse to trade."""
     _set_account(trader, equity=100_000.0)
     trader.trade_client.get_all_positions.return_value = []
-    _set_quotes(trader, {"AAPL": None})  # None ask simulates Alpaca outage
+    _set_quotes(trader, {"AAPL": None})
     with caplog.at_level("WARNING"):
         trades = trader.reconcile({"AAPL": {"signal": "BUY", "score": 0.9}})
-    assert trades == [("AAPL", 10, "BUY")]
+    assert trades == [("AAPL", 0, "NO_ASK")]
     assert any("No usable ask" in r.message for r in caplog.records)
 
 

@@ -279,7 +279,7 @@ class TradingApp(App):
         table.cursor_type = "row"
         table.zebra_stripes = True
         self._refresh_buttons()
-        self.run_worker(self._refresh_cycle(), name="init")
+        self.run_worker(self._refresh_cycle(), name="cycle", exclusive=True)
         self.set_interval(self._interval, self._on_timer)
 
     def _refresh_buttons(self) -> None:
@@ -326,7 +326,7 @@ class TradingApp(App):
         self.run_worker(self._refresh_cycle(), name="switch")
 
     async def _on_timer(self) -> None:
-        self.run_worker(self._refresh_cycle(), name="cycle")
+        self.run_worker(self._refresh_cycle(), name="cycle", exclusive=True)
 
     async def _refresh_cycle(self) -> None:
         table = self.query_one("#signals", DataTable)

@@ -59,7 +59,9 @@ def evaluate_model(seed_path: Path) -> float | None:
     cfg.tickers = list(range(val_features.shape[1]))
 
     try:
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        from config import get_device
+
+        device = get_device()
         model = create_model(cfg, device)
         state = torch.load(seed_path, weights_only=True, map_location=device)
         unwrap_model(model).load_state_dict(state)
