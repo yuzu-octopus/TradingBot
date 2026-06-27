@@ -430,8 +430,10 @@
       background: var(--panel);
       border: 1px solid var(--muted);
       color: var(--fg);
-      padding: 12px 14px;
-      border-radius: 50%;
+      padding: 10px 12px;
+      min-width: 44px;
+      min-height: 44px;
+      border-radius: 6px;
       cursor: pointer;
       transition: background 250ms cubic-bezier(0.4, 0, 0.2, 1);
     }
@@ -452,7 +454,7 @@
       .sidebar { display: none; }
       .main { margin-left: 0; }
       .mobile-toggle { display: block; }
-      .sidebar.open { display: flex; width: 240px; }
+      .sidebar.open { display: flex; }
       .sidebar-overlay.open { display: block; }
     }
   </style>
@@ -465,7 +467,7 @@
 <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
 <a class="skip-link" href="#main-content">Skip to content</a>
 
-<aside class="sidebar">
+<aside class="sidebar" id="sidebar">
   <div class="sidebar-brand">
     <div class="logo"><svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
   <rect width="64" height="64" rx="14" fill="#44475a"/>
@@ -502,7 +504,7 @@
       
       <li><a href="#cli"><span class="icon">
 
-<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1.08-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1.08 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1.08 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1.08z"/></svg>
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="M12 4v3M12 17v3M4 12h3M17 12h3"/></svg>
 
 </span> CLI Reference</a></li>
       
@@ -577,7 +579,7 @@
         
         <div class="card">
           <h3>Multi-Window Features</h3>
-          <p>30 technical indicators (SMA, RSI, MACD, Bollinger, volatility, returns, drawdown) computed per-window at 1y, 1m, 1w, 1d lookbacks — 120 features per stock per day.</p>
+          <p>30 technical indicators (SMA, RSI, MACD, Bollinger, volatility, returns, drawdown) at 1y, 1m, 1w, 1d lookbacks — 120 features per stock per day. Crypto pipeline uses BTC/USD as market proxy.</p>
         </div>
         
         <div class="card">
@@ -623,6 +625,32 @@
           <tr><td>--force-features</td><td>off</td><td>Rebuild feature matrix from scratch</td></tr>
           
           <tr><td>--model <path></td><td>—</td><td>Load model from data/models/<path>/best.pt</td></tr>
+          
+          <tr><td>--trade-interval</td><td>15</td><td>Minutes between trading cycles</td></tr>
+          
+          <tr><td>--trade-headless</td><td>off</td><td>Run paper trading without Rich display</td></tr>
+          
+          <tr><td>--trade-buy-qty</td><td>10</td><td>Shares to buy per long signal</td></tr>
+          
+          <tr><td>--trade-sell-qty</td><td>10</td><td>Shares to sell per short signal</td></tr>
+          
+          <tr><td>--buy-threshold</td><td>—</td><td>Override buy threshold</td></tr>
+          
+          <tr><td>--sell-threshold</td><td>—</td><td>Override sell threshold</td></tr>
+          
+          <tr><td>--pretrain</td><td>off</td><td>Initialize training from pre-trained weights</td></tr>
+          
+          <tr><td>--colab-template</td><td>off</td><td>Generate self-contained Colab script</td></tr>
+          
+          <tr><td>--show-script</td><td>off</td><td>Print colab script to terminal</td></tr>
+          
+          <tr><td>--asset-class</td><td>stocks</td><td>stocks or crypto — switches pipeline</td></tr>
+          
+          <tr><td>--crypto-pairs</td><td>top10</td><td>top10 or all17 — crypto universe</td></tr>
+          
+          <tr><td>--no-amp</td><td>off</td><td>Disable mixed-precision training</td></tr>
+          
+          <tr><td>--tickers-file</td><td>—</td><td>File with one ticker per line</td></tr>
           
         </tbody>
       </table>
@@ -689,7 +717,7 @@
         
         <li><strong>4. Training</strong> &mdash; Supervised regression on next-day cross-sectional z-score returns. Supports MSE, MSRR (direct Sharpe optimization), margin ranking, and ListNet losses. Mixed precision, gradient accumulation, cosine annealing LR, early stopping.</li>
         
-        <li><strong>5. Threshold</strong> &mdash; Post-training calibration via isotonic regression. Dual-threshold search maximizes Sharpe ratio — not just return. Produces separate buy and sell thresholds.</li>
+        <li><strong>5. Threshold</strong> &mdash; Post-training calibration via dual-threshold search maximizes Sharpe ratio. Separate buy and sell thresholds. Paper trading loop runs via trade.py (Rich) or textual_trader.py (TUI).</li>
         
       </ul>
 
@@ -748,6 +776,18 @@ uv run python main.py --mode train --walk-forward
 
 # 6. Get today&#39;s trading signals
 uv run python main.py --mode infer
+
+# 7. Paper trading (Rich dashboard)
+uv run python trade.py --interval 15
+
+# 8. Paper trading (Textual TUI)
+uv run python textual_trader.py --interval 15
+
+# 9. Crypto mode
+uv run python trade.py --interval 15 --asset-class crypto
+
+# 10. Multi-GPU training
+torchrun --nproc_per_node=N uv run python main.py --mode train
 </code></pre>
 
       
@@ -790,7 +830,6 @@ uv run python main.py --mode infer
 function toggleSidebar() {
   var btn = document.getElementById('mobile-toggle');
   var sidebar = document.querySelector('.sidebar');
-  var main = document.querySelector('.main');
   var overlay = document.getElementById('sidebar-overlay');
   var open = sidebar.classList.toggle('open');
   overlay.classList.toggle('open');
