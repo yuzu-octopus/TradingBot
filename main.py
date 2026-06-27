@@ -111,7 +111,7 @@ def prepare_walk_forward_splits(
         current += pd.DateOffset(years=config.wf_step_size)
     fold_dir = Path(config.features_path)
     fold_dir.mkdir(parents=True, exist_ok=True)
-    for i, (tr, va, te, _label) in enumerate(folds):
+    for i, (tr, va, _te, _label) in enumerate(folds):
         np.savez(
             f"{fold_dir}/fold_{i}_train.npz",
             features=features[tr],
@@ -123,12 +123,6 @@ def prepare_walk_forward_splits(
             features=features[va],
             targets=targets[va],
             market_state=market_state[va],
-        )
-        np.savez(
-            f"{fold_dir}/fold_{i}_test.npz",
-            features=features[te],
-            targets=targets[te],
-            market_state=market_state[te],
         )
     # Sidecar fingerprint so a future run can detect config changes that
     # would invalidate the cached fold slices.

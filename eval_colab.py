@@ -44,21 +44,25 @@ def evaluate_model(seed_path: Path) -> float | None:
     from src.utils import create_model, load_scaler, scale_features, unwrap_model
     from training.threshold import optimize_threshold
 
-    feat_path = Path("data/features/test.npz")
+    test_path = Path("data/features/test.npz")
+    val_path = Path("data/features/val.npz")
     scaler_path = Path("data/features/scaler.json")
-    if not feat_path.exists() or not scaler_path.exists():
+    if not test_path.exists() or not val_path.exists() or not scaler_path.exists():
         return None
 
-    with np.load(feat_path) as f:
+    with np.load(val_path) as f:
         val_features = f["features"]
         val_targets = f["targets"]
-        val_market = f.get("market_state")
+    with np.load(test_path) as f:
+        test_features = f["features"]
+        test_targets = f["targets"]
+        test_market = f.get("market_state")
 
     cfg = Config()
     cfg.model_save_path = str(seed_path)
     from config import set_n_stocks
 
-    set_n_stocks(cfg, val_features.shape[1])
+    set_n_stocks(cfg, test_features.shape[1])
 
     try:
         from config import get_device
@@ -74,10 +78,11 @@ def evaluate_model(seed_path: Path) -> float | None:
 
     scaler = load_scaler(str(scaler_path))
     scaled_val = scale_features(val_features, scaler)
-    val_t = torch.tensor(scaled_val, dtype=torch.float32)
+    scaled_test = scale_features(test_features, scaler)
+    test_t = torch.tensor(scaled_test, dtype=torch.float32)
     market_t = (
-        torch.tensor(val_market, dtype=torch.float32)
-        if val_market is not None
+        torch.tensor(test_market, dtype=torch.float32)
+        if test_market is not None
         else None
     )
 
@@ -85,12 +90,12 @@ def evaluate_model(seed_path: Path) -> float | None:
         with torch.no_grad():
             if market_t is not None:
                 scores = (
-                    model(val_t.to(device), market_state=market_t.to(device))
+                    model(test_t.to(device), market_state=market_t.to(device))
                     .cpu()
                     .numpy()
                 )
             else:
-                scores = model(val_t.to(device)).cpu().numpy()
+                scores = model(test_t.to(device)).cpu().numpy()
     except Exception as e:
         print(f"infer fail: {e}", end="")
         return None
@@ -98,7 +103,7 @@ def evaluate_model(seed_path: Path) -> float | None:
     try:
         buy_t, sell_t = optimize_threshold(cfg, model, scaled_val, val_targets)
         signals = np.where(scores > buy_t, 1, np.where(scores < -sell_t, -1, 0))
-        daily_ret = val_targets.mean(axis=1)
+        daily_ret = test_targets.mean(axis=1)
         port_ret = signals.mean(axis=1) * daily_ret
         sharpe = float(np.mean(port_ret) / (np.std(port_ret) + 1e-8) * np.sqrt(252))
         return sharpe  # noqa: TRY300
