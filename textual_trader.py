@@ -277,7 +277,6 @@ class TradingApp(App):
         self._error_count = 0
         self._last_session_path = Path("data/last_session.json")
         self._load_session()
-        self._timer: object | None = None
         self._asset_class = config.asset_class
 
     def compose(self) -> ComposeResult:

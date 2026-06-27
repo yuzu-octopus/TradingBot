@@ -53,6 +53,7 @@ def evaluate_model(seed_path: Path) -> float | None:
     with np.load(val_path) as f:
         val_features = f["features"]
         val_targets = f["targets"]
+        val_market = f.get("market_state")
     with np.load(test_path) as f:
         test_features = f["features"]
         test_targets = f["targets"]
@@ -101,7 +102,9 @@ def evaluate_model(seed_path: Path) -> float | None:
         return None
 
     try:
-        buy_t, sell_t = optimize_threshold(cfg, model, scaled_val, val_targets)
+        buy_t, sell_t = optimize_threshold(
+            cfg, model, scaled_val, val_targets, market_state=val_market
+        )
         signals = np.where(scores > buy_t, 1, np.where(scores < -sell_t, -1, 0))
         daily_ret = test_targets.mean(axis=1)
         port_ret = signals.mean(axis=1) * daily_ret

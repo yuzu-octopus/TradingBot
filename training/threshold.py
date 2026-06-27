@@ -12,6 +12,7 @@ def optimize_threshold(
     model: torch.nn.Module,
     val_features: np.ndarray,
     val_targets: np.ndarray,
+    market_state: np.ndarray | None = None,
 ) -> tuple[float, float]:
     device = next(model.parameters()).device
     val_t = torch.tensor(
@@ -23,7 +24,13 @@ def optimize_threshold(
 
     model.eval()
     with torch.no_grad():
-        scores = model(val_t.to(device)).cpu().numpy()
+        m_t = (
+            torch.tensor(market_state, dtype=torch.float32).to(device)
+            if market_state is not None
+            else None
+        )
+        kwargs = {"market_state": m_t} if m_t is not None else {}
+        scores = model(val_t.to(device), **kwargs).cpu().numpy()
 
     # Use raw model outputs directly. The previous algorithm fit a calibrator
     # (Isotonic -> Logistic / Platt) on the val set and then rescaled its output
@@ -72,9 +79,12 @@ def run_threshold_optimization(config: Config) -> tuple[float, float]:
     with np.load(Path(f"{config.features_path}/val.npz")) as data:
         val_features = data["features"]
         val_targets = data["targets"]
+        val_market = data.get("market_state")
 
     model = load_model(config)
-    buy_t, sell_t = optimize_threshold(config, model, val_features, val_targets)
+    buy_t, sell_t = optimize_threshold(
+        config, model, val_features, val_targets, market_state=val_market
+    )
 
     tmp = Path(f"{config.features_path}/threshold.tmp")
     tmp.write_text(f"{buy_t},{sell_t}")
