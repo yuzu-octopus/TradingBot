@@ -389,7 +389,7 @@ class TradingApp(App):
         self._asset_class = config.asset_class
 
     def compose(self) -> ComposeResult:
-        yield Header(show_clock=True, sub_title="PAPER TRADING")
+        yield Header(show_clock=True)
         with Horizontal(id="asset-row"):
             yield Static("", id="market-dot")
             yield Static("Trading:", id="asset-label")
@@ -425,6 +425,7 @@ class TradingApp(App):
 
     def on_mount(self) -> None:
         _tqdm_std.tqdm = _NoopTqdm  # type: ignore[misc,assignment]
+        self.query_one(Header).sub_title = "PAPER TRADING"
         model_name = Path(self._config.model_save_path).name
         self.query_one("#model-status", Static).update(f"Model: {model_name}")
         self.query_one("#threshold-info", Static).update(

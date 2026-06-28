@@ -6,6 +6,7 @@ from collections.abc import Callable
 from datetime import datetime
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
+from typing import TypeVar
 from zoneinfo import ZoneInfo
 
 from alpaca.data import CryptoHistoricalDataClient, StockHistoricalDataClient
@@ -18,10 +19,12 @@ from config import Config
 
 logger = logging.getLogger(__name__)
 
+_F = TypeVar("_F")
 
-def _retry(
-    fn: Callable[..., object], *args: object, max_tries: int = 3, **kwargs: object
-) -> object:
+
+def _retry[F](
+    fn: Callable[..., _F], *args: object, max_tries: int = 3, **kwargs: object
+) -> _F:
     for attempt in range(max_tries):
         try:
             return fn(*args, **kwargs)
