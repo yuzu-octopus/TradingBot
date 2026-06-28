@@ -418,5 +418,17 @@ def run_training(
 
     save_scaler(scaler, f"{config.features_path}/scaler.json")
     if get_rank() == 0:
+        import json as _json  # ruff: noqa: I001
+        from datetime import UTC as _UTC  # ruff: noqa: I001
+        from datetime import datetime as _dt
+
+        meta = {
+            "trained_at": _dt.now(_UTC).isoformat(),
+            "loss": loss_mode,
+            "n_seeds": n_seeds,
+            "features_path": config.features_path,
+        }
+        meta_path = Path(config.model_save_path).with_suffix(".json")
+        meta_path.write_text(_json.dumps(meta, indent=2))
         print(f"Training complete. Best model saved to {config.model_save_path}")
     return model, scaler

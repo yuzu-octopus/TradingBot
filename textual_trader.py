@@ -784,7 +784,7 @@ class TradingApp(App):
         def on_confirm(result: bool | None) -> None:
             if result:
                 try:
-                    self._trader.trade_client.close_all_positions()
+                    self._trader.close_all_positions()
                     positions = self._trader.get_positions()
                     for ticker in positions:
                         self._trader.cancel_open_orders(ticker)

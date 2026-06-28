@@ -62,7 +62,6 @@ class PaperTrader:
         self._positions_cache: dict[str, dict] = {}
         self._account_cache: dict = {}
         self._audit_path = Path("data/paper_trades.csvl")
-        self._audit_path = Path("data/paper_trades.csvl")
 
     def get_account(self) -> dict:
         acct = self.trade_client.get_account()
@@ -127,7 +126,10 @@ class PaperTrader:
     def next_close(self) -> datetime:
         return self.trade_client.get_clock().next_close  # type: ignore[union-attr]
 
-    def cancel_open_orders(self, symbol: str) -> None:
+    def cancel_open_orders(self, symbol: str | None = None) -> None:
+        if symbol is None:
+            _retry(self.trade_client.cancel_orders)
+            return
         try:
             orders = _retry(
                 self.trade_client.get_orders,
@@ -144,6 +146,9 @@ class PaperTrader:
                 )
             except Exception as e:
                 logger.warning("Cancel failed for %s: %s", o.symbol, e)  # type: ignore[union-attr]
+
+    def close_all_positions(self) -> None:
+        _retry(self.trade_client.close_all_positions)
 
     def submit_market_order(self, symbol: str, qty: float, side: OrderSide) -> dict:
         order = MarketOrderRequest(
@@ -181,7 +186,7 @@ class PaperTrader:
         # Bulk cancel all open orders — single API call instead of per-ticker.
         # Cancelling HOLD tickers' stale orders is harmless; they won't be re-filled
         # this cycle since reconcile only acts on BUY/SELL signals.
-        self.trade_client.cancel_orders()
+        self.cancel_open_orders()
 
         buy_tickers = [
             t
