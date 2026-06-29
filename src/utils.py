@@ -23,11 +23,14 @@ def wrap_ddp(module: nn.Module, device: torch.device) -> nn.Module:
     return DistributedDataParallel(module, device_ids=[device.index])
 
 
-def create_model(config: Config, device: torch.device | None = None) -> nn.Module:
+def create_model(
+    config: Config, device: torch.device | None = None, n_stocks: int | None = None
+) -> nn.Module:
     if device is None:
         device = get_device()
+    n = n_stocks if n_stocks is not None else config.n_stocks
     model: nn.Module = StockTransformer(
-        n_stocks=config.n_stocks,
+        n_stocks=n,
         n_features=config.n_features,
         d_model=config.d_model,
         nhead=config.nhead,
@@ -66,8 +69,14 @@ def load_model(
 ) -> StockTransformer | DistributedDataParallel:
     if device is None:
         device = get_device()
-    model = create_model(config, device)
+    # Load state dict first to infer n_stocks from the checkpoint — the
+    # S&P 500 ticker list drifts over time, so config.n_stocks may not
+    # match the model that was saved. Inferring from stock_embed.weight
+    # makes every checkpoint self-describing and re-loadable forever.
     state = torch.load(config.model_save_path, weights_only=True, map_location=device)
+    weight = state.get("stock_embed.weight")
+    inferred_n = weight.shape[0] if weight is not None else config.n_stocks
+    model = create_model(config, device, n_stocks=inferred_n)
     unwrap_model(model).load_state_dict(state)
     model.eval()
     return model
