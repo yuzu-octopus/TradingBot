@@ -51,6 +51,15 @@ def generate_colab_script(args: argparse.Namespace) -> str:
     if crypto_pairs != "top10":
         extra += f" --crypto-pairs {crypto_pairs}"
 
+    # Build pip install string from pyproject.toml so deps never go stale.
+    import tomllib
+
+    _toml = tomllib.load(Path("pyproject.toml").open("rb"))
+    _all_deps = _toml["project"]["dependencies"]
+    # Filter out textual — only used by the local TUI (textual_trader.py),
+    # not included in the Colab/Kaggle zip. Saves ~15 MB of transitive deps.
+    _pip_deps = " ".join(d for d in _all_deps if not d.startswith("textual"))
+
     files = {}
     for p in [
         "config.py",
@@ -94,36 +103,45 @@ def generate_colab_script(args: argparse.Namespace) -> str:
 
 import os, sys, warnings, shutil, time, zipfile, base64, io
 from pathlib import Path
+
+from tqdm import tqdm
+
 warnings.filterwarnings("ignore")
 start = time.time()
 
 # --- Runtime environment detection ---
 IS_KAGGLE = "KAGGLE_KERNEL_RUN_TYPE" in os.environ
 
-print("Installing dependencies...")
-# Install ALL third-party deps from pyproject.toml. Even though main.py
-# lazy-imports PaperTrader/trade, src.crypto_pipeline still imports
-# alpaca-py at module load (it sits in the import chain). torch/pandas/etc.
-# are pre-installed on Colab GPU runtimes but pinning them guarantees the
-# versions we tested against.
+def _phase(name: str) -> None:
+    el = time.time() - start  # phase banner with elapsed time
+    print(f"\\n{"=" * 60}")
+    print(f"  [{{el:4.0f}}s] {{name}}")
+    print(f"{"=" * 60}")
+
+_phase("Installing dependencies")
+# Install ALL third-party deps from pyproject.toml (auto-generated).
+# torch/pandas/numpy/sklearn are pre-installed on Colab GPU runtimes
+# but pinning guarantees the versions we tested against.
 if IS_KAGGLE:
     import subprocess as _sp
-    _sp.run("pip install -q unlockedpd>=0.3.0 yfinance>=1.4.1 lxml>=6.1.1 alpaca-py>=0.43.0 torch numpy pandas scikit-learn tqdm rich".split())
+    _sp.run("pip install -q {_pip_deps}".split())
 else:
-    get_ipython().system("pip install -q unlockedpd>=0.3.0 yfinance>=1.4.1 lxml>=6.1.1 alpaca-py>=0.43.0 torch numpy pandas scikit-learn tqdm rich")
+    get_ipython().system("pip install -q {_pip_deps}")
 
 import torch
 device_count = torch.cuda.device_count()
 device_name = torch.cuda.get_device_name(0) if device_count > 0 else "CPU"
-print(f"CUDA: {{device_count > 0}} — {{device_count}} GPU(s) — {{device_name}}")
+print(f"CUDA: {{device_count > 0}} \u2014 {{device_count}} GPU(s) \u2014 {{device_name}}")
 
 BASE = "/kaggle/working/tradingbot" if IS_KAGGLE else "/content/tradingbot"
 ARCHIVE = "/kaggle/working/tradingbot_model" if IS_KAGGLE else "/content/tradingbot_model"
 Path(BASE).mkdir(parents=True, exist_ok=True)
 
-print("Extracting project files...")
+_phase("Extracting project files")
 with zipfile.ZipFile(io.BytesIO(base64.b64decode({_safe_str(payload)}))) as z:
-    z.extractall(BASE)
+    members = z.infolist()
+    for m in tqdm(members, desc="Extracting", unit="file", file=sys.stderr):
+        z.extract(m, BASE)
 
 os.chdir(BASE)
 sys.path.insert(0, BASE)
@@ -141,7 +159,8 @@ def _run():
         print("\\n[FATAL] exec failed \\u2014 see traceback above")
         raise
 
-{'sv_orig = list(sys.argv); pretrain_argv = list(sv_orig); pretrain_argv[pretrain_argv.index("--mode") + 1] = "pretrain"; sys.argv = pretrain_argv; print(f"[{time.time()-start:.0f}s] Pre-training..."); _run(); print(f"[{time.time()-start:.0f}s] Pre-training done. Fine-tuning..."); sys.argv = sv_orig' if do_pretrain else ""}
+{'sv_orig = list(sys.argv); pretrain_argv = list(sv_orig); pretrain_argv[pretrain_argv.index("--mode") + 1] = "pretrain"; _phase("Pre-training"); sys.argv = pretrain_argv; _run(); _phase("Fine-tuning"); sys.argv = sv_orig' if do_pretrain else ""}
+_phase("Training")
 _run()
 
 elapsed = time.time() - start

@@ -218,90 +218,19 @@ def print_signals(results: dict[str, dict]) -> None:
 
 
 def run_paper_trading(config: Config, args: argparse.Namespace) -> None:
-    from src.paper_trader import PaperTrader
-    from trade import build_layout, make_trade_table
-
     config.trade_interval_minutes = args.trade_interval
     config.trade_buy_qty = args.trade_buy_qty
     config.trade_sell_qty = args.trade_sell_qty
 
-    trader = PaperTrader(config)
-    nyc = ZoneInfo("America/New_York")
-    buy_t, sell_t = load_threshold(config)
-    if args.buy_threshold is not None:
-        buy_t = args.buy_threshold
-    if args.sell_threshold is not None:
-        sell_t = args.sell_threshold
+    from trade import run_trading_loop
 
-    console = None
-    if not args.trade_headless:
-        from rich.console import Console
-        from rich.theme import Theme
-
-        console = Console(
-            theme=Theme(
-                {
-                    "info": "#bd93f9",
-                    "success": "#50fa7b",
-                    "warning": "#ffb86c",
-                    "error": "#ff5555",
-                    "highlight": "#8be9fd",
-                    "dim": "#6272a4",
-                    "title": "#ff79c6",
-                }
-            )
-        )
-
-    cycle = 0
-    while True:
-        try:
-            cycle += 1
-            now = datetime.now(nyc)
-            now_str = now.strftime("%Y-%m-%d %H:%M:%S ET")
-
-            if not trader.market_open():
-                nxt = trader.next_open()
-                wait = (
-                    nxt.replace(tzinfo=None) - now.replace(tzinfo=None)
-                ).total_seconds()
-                wait_m = max(1, int(wait / 60))
-                print(f"Market closed. Next open ~{wait_m} min")
-                time.sleep(max(0.0, min(wait, 300)))
-                continue
-
-            account = trader.get_account()
-            signals = run_inference(config, buy_threshold=buy_t, sell_threshold=sell_t)
-            positions = trader.get_positions()
-            trades = trader.reconcile(signals)
-
-            if not args.trade_headless and console:
-                table = make_trade_table(
-                    signals,
-                    positions,
-                    trades,
-                    account,
-                    cycle,
-                    args.trade_interval * 60,
-                    now_str,
-                )
-                console.clear()
-                console.print(build_layout(table))
-            else:
-                n_trades = len([t for t in trades if "FAIL" not in str(t[2])])
-                print(
-                    f"[{now_str}] Cycle #{cycle} | "
-                    f"Equity: ${account.get('equity', 0):,.0f} | "
-                    f"Trades: {n_trades}"
-                )
-
-            time.sleep(args.trade_interval * 60)
-
-        except KeyboardInterrupt:
-            print("\nShutting down...")
-            break
-        except Exception as e:
-            print(f"Cycle error: {e}")
-            time.sleep(30)
+    run_trading_loop(
+        config,
+        interval=args.trade_interval,
+        headless=args.trade_headless,
+        buy_threshold=args.buy_threshold,
+        sell_threshold=args.sell_threshold,
+    )
 
 
 def main() -> None:

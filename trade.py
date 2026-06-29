@@ -154,6 +154,91 @@ def build_layout(table):
     return layout
 
 
+def run_trading_loop(
+    config: Config,
+    *,
+    interval: int = 15,
+    headless: bool = False,
+    buy_threshold: float | None = None,
+    sell_threshold: float | None = None,
+) -> None:
+    """Run the paper trading loop. Shared by trade.py and main.py --mode trade."""
+    buy_t, sell_t = load_threshold(config)
+    if buy_threshold is not None:
+        buy_t = buy_threshold
+    if sell_threshold is not None:
+        sell_t = sell_threshold
+
+    trader = PaperTrader(config)
+    nyc = ZoneInfo("America/New_York")
+    equity_history: list[float] = []
+
+    live_ctx = (
+        Live(
+            build_layout(make_trade_table({}, {}, {}, {"equity": 0}, 0, 0, "", [])),
+            screen=True,
+            refresh_per_second=4,
+        )
+        if not headless
+        else _NoopLive()
+    )
+    with live_ctx as live:
+        cycle = 0
+        while True:
+            try:
+                cycle += 1
+                now = datetime.now(nyc)
+                now_str = now.strftime("%Y-%m-%d %H:%M:%S ET")
+
+                if not trader.market_open():
+                    nxt = trader.next_open()
+                    wait = (
+                        nxt.replace(tzinfo=None) - now.replace(tzinfo=None)
+                    ).total_seconds()
+                    wait_m = max(1, int(wait / 60))
+                    print(f"Market closed. Next open ~{wait_m} min")
+                    time.sleep(max(0.0, min(wait, 300)))
+                    continue
+
+                account = trader.get_account()
+                equity_history.append(account.get("equity", 0))
+                if len(equity_history) > 100:
+                    equity_history.pop(0)
+
+                signals = run_inference(
+                    config, buy_threshold=buy_t, sell_threshold=sell_t
+                )
+                positions = trader.get_positions()
+                trades = trader.reconcile(signals)
+
+                if not headless:
+                    table = make_trade_table(
+                        signals,
+                        positions,
+                        trades,
+                        account,
+                        cycle,
+                        interval * 60,
+                        now_str,
+                        equity_history,
+                    )
+                    live.update(build_layout(table))
+                else:
+                    n = len([t for t in trades if "FAIL" not in str(t[2])])
+                    print(
+                        f"[{now_str}] Cycle #{cycle} | Equity: $"
+                        f"{account.get('equity', 0):,.0f} | Trades: {n}"
+                    )
+
+                time.sleep(interval * 60)
+
+            except KeyboardInterrupt:
+                break
+            except Exception as e:
+                print(f"Cycle error: {e}")
+                time.sleep(30)
+
+
 def main():
     parser = ArgumentParser(description="Paper trading bot using Alpaca")
     parser.add_argument(
