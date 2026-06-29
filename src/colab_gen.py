@@ -97,6 +97,14 @@ def generate_colab_script(args: argparse.Namespace) -> str:
 
     do_pretrain = " --pretrain" in extra
 
+    # The generated script needs to know where the model will be saved.
+    # For crypto, main.py sets model_save_path to "data/models/crypto/best.pt".
+    model_save_path = (
+        "data/models/crypto/best.pt"
+        if asset_class == "crypto"
+        else "data/models/best.pt"
+    )
+
     return f"""# TradingBot — Remote Training
 # Works on both Colab and Kaggle.
 # Colab: paste into a GPU cell and run.
@@ -165,7 +173,8 @@ _phase("Training")
 _run()
 
 elapsed = time.time() - start
-if Path(BASE, "data/models/best.pt").exists():
+_model_path = Path(BASE, {_safe_str(model_save_path)})
+if _model_path.exists():
     shutil.make_archive(ARCHIVE, "zip", BASE + "/data/models")
     print(f"\\n[{{elapsed:.0f}}s] Training complete.")
     if IS_KAGGLE:

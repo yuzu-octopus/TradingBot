@@ -285,5 +285,12 @@ def pretrain(
             )
 
         epoch_bar.set_postfix(loss=f"{avg_loss:.6f}")
+        if not math.isfinite(avg_loss):
+            tqdm.write(
+                "  Pretrain loss diverged — NaN/inf detected. "
+                "The dataset may be too small for effective pretraining. "
+                "Fine-tuning proceeds from random init."
+            )
+            break
 
     return model
