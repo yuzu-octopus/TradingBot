@@ -263,10 +263,10 @@ def main() -> None:
             "  mse      Mean Squared Error — per-stock return prediction. Good baseline.\n"
             "  msrr     Max Sharpe Ratio Regression — directly optimizes portfolio Sharpe.\n"
             "           Noisier gradients; use --grad-accum >= 4. Avg SDF Sharpe 2.05.\n"
+            "  listnet  Listwise ranking loss — optimizes top-1 probability distribution.\n"
+            "           Lower LR (30%% of base). Good risk-adjusted returns. DEFAULT.\n"
             "  margin   Pairwise ranking loss — encourages correct relative ordering\n"
             "           of stocks by return. Lower LR (50%% of base).\n"
-            "  listnet  Listwise ranking loss — optimizes top-1 probability distribution.\n"
-            "           Lower LR (30%% of base). Good risk-adjusted returns.\n"
             "\n"
             "Training:\n"
             "  --walk-forward: Splits data into multiple chronological windows (train/val/test),\n"
@@ -297,7 +297,7 @@ def main() -> None:
             "  uv run python main.py --mode train --walk-forward\n"
             "  uv run python main.py --mode infer\n"
             "  uv run python main.py --mode train --resume\n"
-            "  uv run python main.py --mode train --loss margin --grad-accum 4"
+            "  uv run python main.py --mode train --loss listnet --seeds 5 --grad-accum 4"
         ),
     )
     parser.add_argument(
@@ -314,7 +314,7 @@ def main() -> None:
     parser.add_argument(
         "--loss",
         choices=["mse", "msrr", "margin", "listnet"],
-        default="margin",
+        default="listnet",
         help="Loss function (see below for details)",
     )
     parser.add_argument(
