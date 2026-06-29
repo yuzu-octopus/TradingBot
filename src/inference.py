@@ -73,7 +73,13 @@ def run_inference(
     sell_threshold: float = 0.5,
     model: torch.nn.Module | None = None,
 ) -> dict[str, dict]:
-    target = _last_business_day()
+    # Crypto trades 24/7 — don't use NYSE business-day logic which freezes
+    # the cache on Fridays. For stocks, roll back to the last business day.
+    if config.asset_class == "crypto":
+        _now = datetime.now(UTC)
+        target = str((_now - timedelta(days=1)).date())
+    else:
+        target = _last_business_day()
     cache_key = (tuple(config.tickers), target)
     if cache_key not in _raw_data_cache:
         if len(_raw_data_cache) > 1:

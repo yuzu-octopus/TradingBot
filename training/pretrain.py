@@ -174,8 +174,10 @@ def pretrain(
     scheduler = optim.lr_scheduler.CosineAnnealingLR(
         optimizer, T_max=config.pretrain_epochs
     )
-    use_amp = device.type in ("cuda", "mps")
-    amp_scaler = torch.amp.GradScaler(device.type) if use_amp else None
+    use_amp = device.type in ("cuda", "mps") and not config.no_amp
+    amp_scaler = (
+        torch.amp.GradScaler(device.type) if use_amp and device.type == "cuda" else None
+    )
 
     resume_epoch = 0
     best_loss = float("inf")

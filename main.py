@@ -106,7 +106,7 @@ def prepare_walk_forward_splits(
         current += pd.DateOffset(years=config.wf_step_size)
     fold_dir = Path(config.features_path)
     fold_dir.mkdir(parents=True, exist_ok=True)
-    for i, (tr, va, _te, _label) in enumerate(folds):
+    for i, (tr, va, te, _label) in enumerate(folds):
         np.savez(
             f"{fold_dir}/fold_{i}_train.npz",
             features=features[tr],
@@ -118,6 +118,12 @@ def prepare_walk_forward_splits(
             features=features[va],
             targets=targets[va],
             market_state=market_state[va],
+        )
+        np.savez(
+            f"{fold_dir}/fold_{i}_test.npz",
+            features=features[te],
+            targets=targets[te],
+            market_state=market_state[te],
         )
     # Sidecar fingerprint so a future run can detect config changes that
     # would invalidate the cached fold slices.
@@ -584,6 +590,74 @@ def main() -> None:
         print("\n=== Threshold Optimization ===")
         buy_t, sell_t = run_threshold_optimization(config)
         print(f"Optimal thresholds: buy > {buy_t:.2f}, sell < -{sell_t:.2f}")
+
+        # Walk-forward: evaluate each fold model on its test split using
+        # thresholds derived from the fold's VALIDATION set (not test).
+        if args.walk_forward:
+            import torch
+
+            from src.utils import load_model as _load_model
+            from training.threshold import optimize_threshold
+
+            print("\n=== Walk-Forward Test Evaluation ===")
+            fold_sharpes = []
+            for fold in range(fold_count):
+                test_path = Path(f"{config.features_path}/fold_{fold}_test.npz")
+                val_path = Path(f"{config.features_path}/fold_{fold}_val.npz")
+                fold_model_path = Path(orig_save_path).with_name(f"best_fold{fold}.pt")
+                if not test_path.exists() or not fold_model_path.exists():
+                    continue
+                saved = config.model_save_path
+                try:
+                    config.model_save_path = str(fold_model_path)
+                    model = _load_model(config)
+                finally:
+                    config.model_save_path = saved
+                # Optimize thresholds on the fold's validation set.
+                bt, st = 0.5, 0.5
+                if val_path.exists():
+                    with np.load(val_path) as vd:
+                        bt, st = optimize_threshold(
+                            config,
+                            model,
+                            vd["features"],
+                            vd["targets"],
+                            market_state=vd.get("market_state"),
+                        )
+                else:
+                    print(
+                        f"  Fold {fold}: val split missing, "
+                        f"using default thresholds (buy>{bt:.2f}, sell<-{st:.2f})"
+                    )
+                with np.load(test_path) as td:
+                    te_feat = td["features"]
+                    te_targ = td["targets"]
+                    te_mkt = td.get("market_state")
+                device = next(model.parameters()).device
+                scores = (
+                    model(
+                        torch.tensor(te_feat, dtype=torch.float32).to(device),
+                        market_state=torch.tensor(te_mkt, dtype=torch.float32).to(
+                            device
+                        )
+                        if te_mkt is not None
+                        else None,
+                    )
+                    .cpu()
+                    .numpy()
+                )
+                sig = np.where(scores > bt, 1, np.where(scores < -st, -1, 0))
+                port = sig.mean(axis=1) * te_targ.mean(axis=1)
+                s = float(port.mean() / (port.std() + 1e-8) * np.sqrt(252))
+                fold_sharpes.append(s)
+                print(
+                    f"  Fold {fold}: test Sharpe={s:.4f} (buy>{bt:.2f}, sell<-{st:.2f})"
+                )
+            if fold_sharpes:
+                print(
+                    f"  Mean test Sharpe: {np.mean(fold_sharpes):.4f} "
+                    f"± {np.std(fold_sharpes):.4f}"
+                )
 
     elif args.mode == "pretrain":
         print("\n=== D6 Pre-Training ===")

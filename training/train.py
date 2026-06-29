@@ -168,7 +168,9 @@ def train(
             print(f"  Loaded pre-trained weights from {pretrain_path}")
     Path(config.model_save_path).parent.mkdir(parents=True, exist_ok=True)
     use_amp = device.type in ("cuda", "mps") and not config.no_amp
-    amp_scaler = torch.amp.GradScaler(device.type) if use_amp else None
+    amp_scaler = (
+        torch.amp.GradScaler(device.type) if use_amp and device.type == "cuda" else None
+    )
 
     if loss_mode == "msrr":
         criterion = portfolio_mse_loss
@@ -275,13 +277,22 @@ def train(
             train_loss += loss.item() * grad_accum_steps
 
         model.eval()
+        val_preds = []
         with torch.no_grad():
-            if val_m_t is not None:
-                val_pred = unwrap_model(model)(
-                    val_t.to(device), market_state=val_m_t.to(device)
-                )
-            else:
-                val_pred = unwrap_model(model)(val_t.to(device))
+            # Batch validation to avoid OOM on large universes (e.g. 500 stocks
+            # x 252 dates). A single giant forward pass creates an O(S^2) attention
+            # matrix that blows up GPU memory.
+            for b_start in range(0, len(val_t), config.batch_size):
+                b_end = min(b_start + config.batch_size, len(val_t))
+                val_batch = val_t[b_start:b_end].to(device)
+                if val_m_t is not None:
+                    val_m_batch = val_m_t[b_start:b_end].to(device)
+                    val_preds.append(
+                        unwrap_model(model)(val_batch, market_state=val_m_batch)
+                    )
+                else:
+                    val_preds.append(unwrap_model(model)(val_batch))
+            val_pred = torch.cat(val_preds, dim=0)
             val_loss = criterion(val_pred, val_y.to(device)).item()
         scheduler.step()
         epoch_bar.set_postfix(

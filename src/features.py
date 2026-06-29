@@ -199,7 +199,11 @@ def build_feature_matrix(
     rolling_1m = {}
     rolling_1w = {}
     for ticker, df in all_features.items():
-        rolling_1y[ticker] = df.rolling(WINDOW_1Y).mean()
+        # Use min_periods=1 to avoid the ~252-day NaN warmup while preserving
+        # long-term trend smoothing for non-rolling features like return_1d,
+        # rsi, macd, intraday_range. Without smoothing, the 1y window loses
+        # its slow-trend signal and collapses to the same data as the 1d window.
+        rolling_1y[ticker] = df.rolling(WINDOW_1Y, min_periods=1).mean()
         rolling_1m[ticker] = df.rolling(WINDOW_1M).mean()
         rolling_1w[ticker] = df.rolling(WINDOW_1W).mean()
 
@@ -215,6 +219,16 @@ def build_feature_matrix(
                 r1w = rolling_1w[ticker].loc[date]
                 r1d = all_features[ticker].loc[date]
             except KeyError:
+                # When a ticker is missing a specific date (data gap),
+                # fall back to the previous ticker's features for this date.
+                # This avoids zero-inflated features causing extreme scaled
+                # values after StandardScaler. A same-ticker backward-in-time
+                # fallback would be more correct, but requires tracking
+                # per-ticker valid date history. Note: this mixes features
+                # across different stocks (e.g., BTC features used for ETH if
+                # ETH's date is missing), which is a pragmatic hack.
+                if col_idx > 0 and row[col_idx - 1].any():
+                    row[col_idx] = row[col_idx - 1].copy()
                 continue
             cols = all_features[ticker].columns[:N_FEATURES]
             stock_vec = []

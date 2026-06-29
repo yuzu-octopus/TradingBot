@@ -54,7 +54,8 @@ def generate_colab_script(args: argparse.Namespace) -> str:
     # Build pip install string from pyproject.toml so deps never go stale.
     import tomllib
 
-    _toml = tomllib.load(Path("pyproject.toml").open("rb"))
+    with Path("pyproject.toml").open("rb") as f:
+        _toml = tomllib.load(f)
     _all_deps = _toml["project"]["dependencies"]
     # Filter out textual — only used by the local TUI (textual_trader.py),
     # not included in the Colab/Kaggle zip. Saves ~15 MB of transitive deps.
