@@ -314,7 +314,7 @@ def main() -> None:
     parser.add_argument(
         "--loss",
         choices=["mse", "msrr", "margin", "listnet"],
-        default="mse",
+        default="margin",
         help="Loss function (see below for details)",
     )
     parser.add_argument(

@@ -68,10 +68,10 @@ class Config:
     def n_features(self) -> int:
         return self.features_per_window * self.n_windows
 
-    d_model: int = 128
-    nhead: int = 4
-    num_layers: int = 3
-    dim_feedforward: int = 256
+    d_model: int = 256
+    nhead: int = 8
+    num_layers: int = 4
+    dim_feedforward: int = 512
     dropout: float = 0.1
 
     batch_size: int = 32

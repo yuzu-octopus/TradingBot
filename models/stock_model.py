@@ -36,7 +36,9 @@ class RankGLU(nn.Module):
         self.gate = nn.Linear(d_model, bottleneck)
         self.dropout = nn.Dropout(dropout)
         self.out = nn.Linear(bottleneck, 1)
-        self.gamma = nn.Parameter(torch.ones(1) * 0.5)
+        self.gamma = nn.Parameter(
+            torch.ones(1)
+        )  # init at 1.0 so both branches contribute equally
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = self.norm(x)
@@ -65,10 +67,9 @@ class StockTransformer(nn.Module):
         self.market_state_size = market_state_size
         self.input_proj = nn.Linear(n_features, d_model)
         self.dropout = nn.Dropout(dropout)
-        self.stock_embed = nn.Embedding(n_stocks, d_model)
         if market_state_size > 0:
             self.market_gate = MarketGate(n_features, market_state_size)
-        decoder_layer = nn.TransformerDecoderLayer(
+        encoder_layer = nn.TransformerEncoderLayer(
             d_model=d_model,
             nhead=nhead,
             dim_feedforward=dim_feedforward,
@@ -77,7 +78,7 @@ class StockTransformer(nn.Module):
             batch_first=True,
             norm_first=True,
         )
-        self.transformer = nn.TransformerDecoder(decoder_layer, num_layers=num_layers)
+        self.transformer = nn.TransformerEncoder(encoder_layer, num_layers=num_layers)
         self.norm = nn.LayerNorm(d_model)
         self.output_head = RankGLU(
             d_model, bottleneck=rankglu_bottleneck, dropout=dropout
@@ -86,34 +87,27 @@ class StockTransformer(nn.Module):
 
     def _init_weights(self) -> None:
         for m in self.modules():
-            if isinstance(m, (nn.Linear, nn.Embedding)):
+            if isinstance(m, nn.Linear):
                 nn.init.xavier_uniform_(m.weight)
-            if isinstance(m, nn.Linear) and m.bias is not None:
-                nn.init.zeros_(m.bias)
+                if m.bias is not None:
+                    nn.init.zeros_(m.bias)
 
     def forward(
         self, x: torch.Tensor, market_state: torch.Tensor | None = None
     ) -> torch.Tensor:
         if market_state is not None and self.market_state_size > 0:
             x = self.market_gate(x, market_state)
-        # Shuffle stock order to break alphabetical bias from the causal mask.
-        # Without this, ticker "A" (index 0) only attends to itself while
-        # "ZTS" (index N-1) attends to everyone — a systematic asymmetry.
-        # Random permutation per forward pass means no ticker gets a fixed
-        # informational advantage.
-        perm = torch.randperm(self.n_stocks, device=x.device)
-        x = x[:, perm, :]
         x = self.input_proj(x)
         x = self.dropout(x)
-        x = x + self.stock_embed(perm).unsqueeze(0)
-        causal_mask = nn.Transformer.generate_square_subsequent_mask(
-            self.n_stocks, device=x.device
-        )
-        x = self.transformer(x, memory=x, tgt_mask=causal_mask, tgt_is_causal=True)
+        # Encoder-only with full bidirectional self-attention — every stock
+        # attends to every stock. No causal mask, no permutation, no
+        # stock_embed (full attention captures cross-stock relationships
+        # without needing positional identity embeddings).
+        x = self.transformer(x)
         x = self.norm(x)
         x = self.output_head(x)
-        x = torch.tanh(x)
-        # Unshuffle back to original ticker order so callers get consistent
-        # per-ticker scores regardless of the random permutation.
-        x = x[:, perm.argsort(), :]
+        # Clamp instead of tanh: bounds scores to [-1, 1] without the
+        # gradient vanishing that tanh causes near saturation. Only kills
+        # gradients when a value is exactly outside [-1, 1], not gradually.
+        x = torch.clamp(x, -1, 1)
         return x.squeeze(-1)

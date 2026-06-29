@@ -15,13 +15,24 @@ CHECKPOINT_PATH = "data/models/checkpoint.pt"
 
 
 def _compute_val_sharpe(
-    pred: torch.Tensor, target: torch.Tensor, n_thresholds: int = 20
+    pred: torch.Tensor, target: torch.Tensor, n_thresholds: int = 50
 ) -> float:
-    """Quick val Sharpe scan for training observability."""
+    """Quick val Sharpe scan for training observability.
+
+    Dynamically adapts the threshold search range to the actual score
+    magnitude so it works with any score scale (tanh, clamp, or raw).
+    Uses absolute value percentiles to guarantee thresholds are always
+    positive (buy > t, sell < -t semantics require t >= 0).
+    """
     pred_np = pred.detach().cpu().numpy()
     target_np = target.detach().cpu().numpy()
+    abs_np = np.abs(pred_np)
+    pct_lo = float(np.percentile(abs_np, 5))
+    pct_hi = float(np.percentile(abs_np, 95))
+    if pct_hi - pct_lo < 0.01:
+        return 0.0
     best = -float("inf")
-    for t in np.linspace(0.01, 0.95, n_thresholds):
+    for t in np.linspace(max(0.01, pct_lo), pct_hi, n_thresholds):
         signals = np.where(pred_np > t, 1, np.where(pred_np < -t, -1, 0))
         daily = target_np.mean(axis=1)
         port = signals.mean(axis=1) * daily
@@ -212,7 +223,19 @@ def train(
             weight_decay=config.weight_decay,
         )
 
-    scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=config.max_epochs)
+    # Linear warmup for first 5% of epochs, then cosine decay.
+    # Transformer training is unstable without warmup — the first few
+    # steps with large gradients can derail convergence entirely.
+    warmup_epochs = max(1, int(config.max_epochs * 0.05))
+    warmup = optim.lr_scheduler.LinearLR(
+        optimizer, start_factor=0.01, total_iters=warmup_epochs
+    )
+    cosine = optim.lr_scheduler.CosineAnnealingLR(
+        optimizer, T_max=config.max_epochs - warmup_epochs
+    )
+    scheduler = optim.lr_scheduler.SequentialLR(
+        optimizer, schedulers=[warmup, cosine], milestones=[warmup_epochs]
+    )
 
     best_val_loss = resume_best_loss
     patience_counter = resume_patience

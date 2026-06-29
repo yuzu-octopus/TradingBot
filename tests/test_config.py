@@ -5,7 +5,10 @@ def test_config_defaults() -> None:
     c = Config(tickers=["AAPL", "MSFT"])
     assert c.n_stocks == 2
     assert c.n_features == 120
-    assert c.d_model == 128
+    assert c.d_model == 256
+    assert c.nhead == 8
+    assert c.num_layers == 4
+    assert c.dim_feedforward == 512
     assert c.batch_size == 32
 
 
