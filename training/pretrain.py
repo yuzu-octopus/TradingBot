@@ -181,6 +181,7 @@ def pretrain(
 
     resume_epoch = 0
     best_loss = float("inf")
+    patience_counter = 0
     if resume and Path(PRETRAIN_CHECKPOINT_PATH).exists():
         ckpt = torch.load(
             PRETRAIN_CHECKPOINT_PATH, weights_only=True, map_location=device
@@ -191,6 +192,7 @@ def pretrain(
         scheduler.load_state_dict(ckpt["scheduler_state_dict"])
         resume_epoch = ckpt["epoch"]
         best_loss = ckpt["best_loss"]
+        patience_counter = ckpt.get("patience_counter", 0)
         tqdm.write(f"  Resumed from epoch {resume_epoch} (best_loss={best_loss:.6f})")
 
     Path(config.pretrain_weights_path).parent.mkdir(parents=True, exist_ok=True)
@@ -266,10 +268,19 @@ def pretrain(
 
         if avg_loss < best_loss:
             best_loss = avg_loss
+            patience_counter = 0
             if get_rank() == 0:
                 torch.save(
                     unwrap_model(model).state_dict(), config.pretrain_weights_path
                 )
+        else:
+            patience_counter += 1
+            if patience_counter >= config.pretrain_early_stop_patience:
+                tqdm.write(
+                    f"  Pretrain early stopping at epoch {epoch + 1} "
+                    f"(no improvement for {patience_counter} epochs)"
+                )
+                break
 
         if (epoch + 1) % 10 == 0 and get_rank() == 0:
             torch.save(
@@ -280,6 +291,7 @@ def pretrain(
                     "scheduler_state_dict": scheduler.state_dict(),
                     "epoch": epoch + 1,
                     "best_loss": best_loss,
+                    "patience_counter": patience_counter,
                 },
                 PRETRAIN_CHECKPOINT_PATH,
             )

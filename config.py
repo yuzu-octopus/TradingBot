@@ -95,6 +95,7 @@ class Config:
     pretrain_lr: float = 1e-4
     pretrain_mask_ratio: float = 0.2
     pretrain_top_n_days: int = 3
+    pretrain_early_stop_patience: int = 15
     pretrain_weights_path: str = "data/models/pretrain/best.pt"
 
     tickers_file: str = ""
