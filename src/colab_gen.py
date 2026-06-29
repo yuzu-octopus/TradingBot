@@ -128,7 +128,7 @@ def _run():
         print("\\n[FATAL] exec failed \\u2014 see traceback above")
         raise
 
-{'pretrain_argv = list(flaglist); pretrain_argv[flaglist.index("--mode") + 1] = "pretrain"; print(f"[{time.time()-start:.0f}s] Pre-training..."); sv = sys.argv; sys.argv = pretrain_argv; _run(); print(f"[{time.time()-start:.0f}s] Pre-training done. Fine-tuning..."); sys.argv = flaglist' if do_pretrain else ""}
+{'sv_orig = list(sys.argv); pretrain_argv = list(sv_orig); pretrain_argv[pretrain_argv.index("--mode") + 1] = "pretrain"; sys.argv = pretrain_argv; print(f"[{time.time()-start:.0f}s] Pre-training..."); _run(); print(f"[{time.time()-start:.0f}s] Pre-training done. Fine-tuning..."); sys.argv = sv_orig' if do_pretrain else ""}
 _run()
 
 elapsed = time.time() - start
