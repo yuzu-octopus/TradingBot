@@ -33,6 +33,8 @@ def generate_colab_script(args: argparse.Namespace) -> str:
     loss = args.loss
     seeds = args.seeds
     grad_accum = args.grad_accum
+    asset_class = args.asset_class
+    crypto_pairs = args.crypto_pairs
     extra = ""
     if args.walk_forward:
         extra += " --walk-forward"
@@ -42,6 +44,12 @@ def generate_colab_script(args: argparse.Namespace) -> str:
         extra += " --resume"
     if args.pretrain:
         extra += " --pretrain"
+    if args.no_amp:
+        extra += " --no-amp"
+    if asset_class != "stocks":
+        extra += f" --asset-class {asset_class}"
+    if crypto_pairs != "top10":
+        extra += f" --crypto-pairs {crypto_pairs}"
 
     files = {}
     for p in [
