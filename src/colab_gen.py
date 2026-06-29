@@ -22,7 +22,7 @@ def _redact_secrets(content: str) -> str:
     import re
 
     return re.sub(
-        r'(alpaca_api_key|alpaca_secret_key)\s*[=:]\s*["\'].*?["\']',
+        r'(alpaca_api_key|alpaca_secret_key)\s*[=:].*?["\']([^"\']*)["\']',
         r'\1 = "REDACTED"',
         content,
     )
@@ -48,13 +48,16 @@ def generate_colab_script(args: argparse.Namespace) -> str:
         "config.py",
         "main.py",
         "models/stock_model.py",
+        "src/crypto_pipeline.py",
         "src/data_pipeline.py",
         "src/features.py",
+        "src/paper_trader.py",
         "src/utils.py",
         "src/inference.py",
         "training/train.py",
         "training/threshold.py",
         "training/pretrain.py",
+        "trade.py",
     ]:
         files[p] = _redact_secrets(Path(p).read_text())
     for p in ["models/__init__.py", "src/__init__.py", "training/__init__.py"]:
@@ -94,7 +97,7 @@ if IS_KAGGLE:
     import subprocess as _sp
     _sp.run("pip install -q unlockedpd>=0.3.0 yfinance>=1.4.1 lxml".split())
 else:
-    get_ipython().system("pip install -q unlockedpd>=0.3.0 yfinance>=1.4.1 pyperclip>=1.11.0 lxml>=6.1.1")
+    get_ipython().system("pip install -q unlockedpd>=0.3.0 yfinance>=1.4.1 lxml>=6.1.1")
 
 import torch
 device_count = torch.cuda.device_count()
@@ -125,7 +128,7 @@ def _run():
         print("\\n[FATAL] exec failed \\u2014 see traceback above")
         raise
 
-{'print(f"[{time.time()-start:.0f}s] Pre-training step..."); sv = sys.argv; sys.argv = [a for a in sv if a != "--pretrain"]; _run(); print(f"[{time.time()-start:.0f}s] Pre-training done. Starting fine-tune..."); sys.argv = sv' if do_pretrain else ""}
+{'pretrain_argv = list(flaglist); pretrain_argv[flaglist.index("--mode") + 1] = "pretrain"; print(f"[{time.time()-start:.0f}s] Pre-training..."); sv = sys.argv; sys.argv = pretrain_argv; _run(); print(f"[{time.time()-start:.0f}s] Pre-training done. Fine-tuning..."); sys.argv = flaglist' if do_pretrain else ""}
 _run()
 
 elapsed = time.time() - start

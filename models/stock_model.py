@@ -96,6 +96,13 @@ class StockTransformer(nn.Module):
     ) -> torch.Tensor:
         if market_state is not None and self.market_state_size > 0:
             x = self.market_gate(x, market_state)
+        # Shuffle stock order to break alphabetical bias from the causal mask.
+        # Without this, ticker "A" (index 0) only attends to itself while
+        # "ZTS" (index N-1) attends to everyone — a systematic asymmetry.
+        # Random permutation per forward pass means no ticker gets a fixed
+        # informational advantage.
+        perm = torch.randperm(self.n_stocks, device=x.device)
+        x = x[:, perm, :]
         stock_ids = torch.arange(self.n_stocks, device=x.device)
         x = self.input_proj(x)
         x = self.dropout(x)
@@ -107,4 +114,7 @@ class StockTransformer(nn.Module):
         x = self.norm(x)
         x = self.output_head(x)
         x = torch.tanh(x)
+        # Unshuffle back to original ticker order so callers get consistent
+        # per-ticker scores regardless of the random permutation.
+        x = x[:, perm.argsort(), :]
         return x.squeeze(-1)

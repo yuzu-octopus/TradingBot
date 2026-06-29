@@ -4,7 +4,6 @@ from argparse import ArgumentParser
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
-from rich.console import Console
 from rich.layout import Layout
 from rich.live import Live
 from rich.panel import Panel
@@ -28,7 +27,6 @@ _THEME = Theme(
         "border": "bright_magenta",
     }
 )
-console = None
 
 
 class _NoopLive:
@@ -206,7 +204,7 @@ def main():
         sell_t = args.sell_threshold
 
     if not args.headless:
-        Console(theme=_THEME)  # init theme for Rich
+        pass  # Live() creates its own Console; theme set via _THEME is per-console only
 
     trader = PaperTrader(config)
     nyc = ZoneInfo("America/New_York")

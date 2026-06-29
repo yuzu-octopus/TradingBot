@@ -4,7 +4,6 @@ import os
 import time
 from collections.abc import Callable
 from datetime import datetime
-from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from typing import TypeVar
 from zoneinfo import ZoneInfo
@@ -35,19 +34,6 @@ def _retry[F](
             logger.warning("Retry %s/%d: %s", attempt + 1, max_tries, e)
             time.sleep(wait)
     return None
-
-
-def setup_logger(log_file: str = "data/trading_bot.log") -> None:
-    """Configure root logger with a RotatingFileHandler (10 MB, 5 backups)."""
-    p = Path(log_file)
-    p.parent.mkdir(parents=True, exist_ok=True)
-    handler = RotatingFileHandler(log_file, maxBytes=10 * 1024 * 1024, backupCount=5)
-    handler.setFormatter(
-        logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s")
-    )
-    root = logging.getLogger()
-    root.addHandler(handler)
-    root.setLevel(logging.INFO)
 
 
 class PaperTrader:

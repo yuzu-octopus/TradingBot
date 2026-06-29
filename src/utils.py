@@ -1,4 +1,6 @@
 import json
+import logging
+from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
 import numpy as np
@@ -95,6 +97,21 @@ def scale_features(features: np.ndarray, scaler: StandardScaler) -> np.ndarray:
     scaled = scaler.transform(features.reshape(-1, F))
     scaled = np.nan_to_num(scaled, nan=0.0)
     return scaled.reshape(T, S, F)
+
+
+def setup_logger(log_file: str = "data/trading_bot.log") -> None:
+    """Configure root logger with a RotatingFileHandler (10 MB, 5 backups)."""
+    p = Path(log_file)
+    p.parent.mkdir(parents=True, exist_ok=True)
+    root = logging.getLogger()
+    if any(isinstance(h, RotatingFileHandler) for h in root.handlers):
+        return
+    handler = RotatingFileHandler(log_file, maxBytes=10 * 1024 * 1024, backupCount=5)
+    handler.setFormatter(
+        logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s")
+    )
+    root.addHandler(handler)
+    root.setLevel(logging.INFO)
 
 
 def load_threshold(config: Config) -> tuple[float, float]:

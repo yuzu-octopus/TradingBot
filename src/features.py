@@ -291,6 +291,16 @@ def _data_hash(raw_data_dir: str) -> str:
     return hashlib.sha256("|".join(parts).encode()).hexdigest()[:16]
 
 
+def _features_code_hash() -> str:
+    """Hash the feature computation source so cache invalidates on code changes."""
+    return hashlib.sha256(Path(__file__).read_bytes()).hexdigest()[:12]
+
+
+def _cache_key(raw_data_dir: str) -> str:
+    """Composite cache key: data fingerprint + feature-code fingerprint."""
+    return f"{_data_hash(raw_data_dir)}:{_features_code_hash()}"
+
+
 def load_cached_features(
     raw_data_dir: str,
     cache_dir: str = "data/features",
@@ -300,7 +310,7 @@ def load_cached_features(
     if not Path(mat_path).exists() or not Path(hash_path).exists():
         return None
     cached_hash = Path(hash_path).read_text().strip()
-    if cached_hash != _data_hash(raw_data_dir):
+    if cached_hash != _cache_key(raw_data_dir):
         return None
     data = np.load(mat_path)
     return data["features"], data["tickers"].tolist(), data["dates"].tolist()
@@ -316,6 +326,6 @@ def save_cached_features(
     mat_path = f"{cache_dir}/matrix.npz"
     hash_path = f"{cache_dir}/matrix_hash.txt"
     Path(mat_path).parent.mkdir(parents=True, exist_ok=True)
-    Path(hash_path).write_text(_data_hash(raw_data_dir))
+    Path(hash_path).write_text(_cache_key(raw_data_dir))
     np.savez_compressed(mat_path, features=features, tickers=tickers, dates=dates)
     print(f"  Cached feature matrix to {mat_path}")

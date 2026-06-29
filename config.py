@@ -19,7 +19,7 @@ def get_rank() -> int:
     return dist.get_rank() if is_distributed() else 0
 
 
-def set_n_stocks(cfg: "Config", n: int) -> None:
+def set_n_stocks(cfg: Config, n: int) -> None:
     """Set universe size without mutating cfg.tickers (placeholder indices)."""
     cfg.tickers = [str(i) for i in range(n)]
 

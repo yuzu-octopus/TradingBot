@@ -14,6 +14,22 @@ from src.utils import create_model, save_scaler, scale_features, unwrap_model
 CHECKPOINT_PATH = "data/models/checkpoint.pt"
 
 
+def _compute_val_sharpe(
+    pred: torch.Tensor, target: torch.Tensor, n_thresholds: int = 20
+) -> float:
+    """Quick val Sharpe scan for training observability."""
+    pred_np = pred.detach().cpu().numpy()
+    target_np = target.detach().cpu().numpy()
+    best = -float("inf")
+    for t in np.linspace(0.01, 0.95, n_thresholds):
+        signals = np.where(pred_np > t, 1, np.where(pred_np < -t, -1, 0))
+        daily = target_np.mean(axis=1)
+        port = signals.mean(axis=1) * daily
+        s = float(np.mean(port) / (np.std(port) + 1e-8) * np.sqrt(252))
+        best = max(best, s)
+    return best
+
+
 def save_checkpoint(
     model: nn.Module,
     optimizer: optim.Optimizer,
@@ -286,6 +302,8 @@ def train(
                 patience_counter,
                 path=checkpoint_path,
             )
+            val_sharpe = _compute_val_sharpe(val_pred, val_y.to(device))
+            tqdm.write(f"  val_sharpe={val_sharpe:.4f}")
 
     if get_rank() == 0:
         unwrap_model(model).load_state_dict(

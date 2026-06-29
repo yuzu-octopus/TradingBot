@@ -1,174 +1,229 @@
-# Fix Plan — Outstanding Items Only
+# Fix Plan — Outstanding Issues
 
-**Last full audit:** commits through `f3e49d9` (2026-06-27, "ci: use github.actor + secrets.GITHUB_TOKEN for git push auth"). Today: 2026-06-27.
-**Validation baseline:** `ruff check` ✅ · `ruff format --check` ✅ (31 files) · `pytest` 79/79 ✅ · `mypy` **52 errors** (regressed 44 → 52 across the bulk-fix series; +8 above baseline).
+**Audit date:** 2026-06-28 | HEAD: `b86d894`
+**Baseline:** `ruff check` ✅ · `ruff format --check` ✅ (31 files) · `pytest` 79/79 ✅ · `mypy` **34 errors**
 
-**Status:** ~95% of all audit items resolved across the post-`dad479e` series (`dea2dae` → `402b5d1` → `ce1a881` → `605fef8` → `1560f48` → `f3e49d9`). **3 outstanding items** remain after adversarial review (1 HIGH, 2 MEDIUM).
+All prior-audit items (UX-N1/N3, N-RETRY-1/2, N-MODEL-META-1, N-DATAQ-1, N-PORT-CAP-1, N-LIVE-LOCKOUT-1, N-KILL-1, N-OBSERVE-1, N-LOG-1, etc.) are verified resolved. This plan covers only **new findings** from a fresh end-to-end codebase audit.
 
 ---
 
-## STILL OPEN — High
+## CRITICAL
 
-### 1. N-RETRY-1 (NEW). Bulk cancel + liquidate closure not wrapped in `_retry`
+### 1. Colab script crashes with ImportError — trading/UI deps imported at module level
 
-**Where:** `src/paper_trader.py:181` (`self.trade_client.cancel_orders()`) and `textual_trader.py:784` (`self._trader.trade_client.close_all_positions()`).
+**Where:** `main.py` lines 22–23.
 
-Adversarial review surfaced that **every per-order hydration path is wrapped in the module's `_retry(fn, max_tries=3, exponential-backoff)` helper** (e.g. `submit_market_order`, `cancel_order_by_id`, `get_orders`, `get_crypto_bars`), but the two **collection-level** endpoints are not:
-
-| API call | Site | Wrapped in `_retry`? |
-|---|---|---|
-| `submit_order` (single order) | `submit_market_order` | ✅ |
-| `cancel_order_by_id` (single) | `cancel_open_orders` | ✅ |
-| `get_orders` (filtered) | `cancel_open_orders` | ✅ |
-| **`cancel_orders()` (bulk, all open)** | `reconcile` | ❌ |
-| **`close_all_positions()` (bulk)** | `action_liquidate` | ❌ |
-
-**Failure mode:** on a 429 / transient API hiccup, the bulk call raises an HTTP error that propagates up to `reconcile()`'s outer `try/except: trades.append((ticker, 0, f"BUY_FAIL:{e}"))` loop — meaning **only the BUY path catches it, never ALL the in-flight orders.** Concretely:
-
-1. `cancel_orders()` raises `APIError(429)` mid-reconcile.
-2. The loop's `except Exception as e` catches it ONLY if it appears inside the BUY try/except — it's actually outside, so it bubbles to `_refresh_cycle` (textual) or `main()` (Rich).
-3. All stale orders from the previous cycle remain open and may **still fill during the API recovery window**.
-4. Next cycle attempts to add new orders → potential conflicts, double-positioning, or Alpaca-side rejections.
-
-Same gap exists for `close_all_positions()` in liquidation: if it fails the user-issued `liquidate` action, positions remain open and the operator's mental model ("I'm flat") is wrong until they manually re-press `l`.
-
-**Real fix:** route both through the same retry helper:
+**What happens:** `main.py` has these **top-level** imports that execute at module load before `main()` is even called:
 
 ```python
-# src/paper_trader.py
-def cancel_open_orders(self, symbol: str | None = None) -> None:  # extend signature
-    """If symbol is None, cancel ALL open orders (bulk, retried)."""
-    if symbol is None:
-        _retry(self.trade_client.cancel_orders)
-        return
-    # ...existing per-symbol logic
-def close_all_positions(self) -> None:
-    _retry(self.trade_client.close_all_positions)
+from src.paper_trader import PaperTrader, setup_logger   # → requires alpaca-py, pytz
+from trade import build_layout, make_trade_table          # → requires rich
 ```
 
-…then call `self._trader.cancel_open_orders()` (no-arg) from `reconcile()` and `action_liquidate` (passing `ticker` only for the per-symbol fallback path — though the bulk call already supersedes it).
+`src/paper_trader.py` imports `alpaca.data`, `alpaca.trading` at module level.
+`trade.py` imports `rich.console`, `rich.live`, etc. at module level.
 
-Plus access `close_all_positions` through `PaperTrader` rather than reaching through `self._trader.trade_client` from the UI:
+When the Colab script runs `exec(open("main.py").read(), globals())` in **training mode**, these imports execute immediately → **`ModuleNotFoundError: No module named 'alpaca'`** — even though training never uses trading or UI functionality.
+
+The root cause: trading/UI dependencies are loaded unconditionally for ALL modes (`train`, `infer`, `pretrain`, `trade`). They should only load when `--mode trade` is requested.
+
+**Fix:** Lazy-import `PaperTrader`/`setup_logger` and `build_layout`/`make_trade_table` inside `run_paper_trading()` instead of at module level. Also move `setup_logger` from `src/paper_trader.py` to `src/utils.py` so the logger setup (needed in all modes) doesn't pull in alpaca-py. ~15 min.
 
 ```python
-# textual_trader.py:action_liquidate
-self._trader.close_all_positions()  # <- go through PaperTrader for retry
+# main.py — remove these top-level imports:
+#   from src.paper_trader import PaperTrader, setup_logger
+#   from trade import build_layout, make_trade_table
+
+# main.py — add lazy imports inside run_paper_trading():
+def run_paper_trading(config, args):
+    from src.paper_trader import PaperTrader
+    from trade import build_layout, make_trade_table
+    ...
+
+# src/utils.py — move setup_logger here (imports logging only, no alpaca-py)
+# main.py — import setup_logger from src.utils instead
 ```
 
-**Severity:** HIGH — silent failure on rate-limit (sub-second normally, but Alpaca's 200 req/min free-tier can hit it) → phantom positions remain open. User-visible only when reconcile returns a `BUY_FAIL` and the prior-cycle order actually executed anyway.
-
 ---
 
-## STILL OPEN — Medium
+### 2. Walk-forward training crash in threshold optimization
 
-### 2. mypy: 44 → 52 (regression across `dea2dae` … `1560f48`)
+**Where:** `main.py` lines 575–615.
 
-**Where:** 8 files: `src/paper_trader.py` (27), `textual_trader.py` (8 aggregate), `src/inference.py` (8), `src/crypto_pipeline.py` (5), `tests/test_trade.py` (1), `tests/test_ddp.py` (1), `src/utils.py` (1), `src/data_pipeline.py` (1).
+**What happens:**
 
-**Verified root causes (literal mypy messages):**
+```
+main.py --mode train --walk-forward:
+  orig_save_path = config.model_save_path   # "data/models/best.pt"
 
-1. **`Union[TradeAccount, dict, Any]` cascade in `src/paper_trader.py`** — `get_account()` and `get_positions()` return `dict` (lines 67, 77) but the calling code reaches into them as if they were `TradeAccount` / `Position` (`.equity`, `.cash`, `.qty`, etc.). 21 of 27 errors here.
-2. **`CryptoBarsRequest.start` / `end` typed `datetime` but called with `str`** in `src/crypto_pipeline.py:40-41` + 4 follow-on union-attr errors on `BarSet.data`.
-3. **`datetime.datetime.date` used as a TYPE** in `src/inference.py:51` — `.date()` returns a `datetime.date`, not `datetime.datetime`, so subsequent `d.year` / `d.month` / `d.day` on the wrong type cascade.
+  for fold in range(n_folds):
+      config.model_save_path = f"best_fold{fold}.pt"   # temporarily reroute
+      run_training(config, ...)                          # saves to best_fold{fold}.pt ✅
+      config.model_save_path = orig_save_path           # restore to "best.pt"
 
-> *(Prior plan claimed Root cause 3 was `push_screen` callback typing. Adversarial review showed this is **wrong**: the 8 aggregate errors in `textual_trader.py` are Header / widget / `_NoopTqdm` assignment mismatches — no push_screen errors in the aggregate run. Dropping that misframe.)*
+  # CRASH: load_model(config) tries torch.load("data/models/best.pt")
+  # best.pt was NEVER written during walk-forward!
+  run_threshold_optimization(config)   # FileNotFoundError
+```
 
-**Real fix** (~2–3 h):
-- **Option A** (cheap): add `# type: ignore[union-attr]` near the SDK access sites; cast the dict-returning methods with explicit `cast(TradeAccount, …)`.
-- **Option B** (right): replace `dict` caches with typed adapters (`_account_from_raw(acct) -> TradeAccount`, `_positions_from_raw(rows) -> dict[str, Position]`); drop the `dict` fallback since the Alpaca SDK is stable.
-- **Option C** (subset): silence only the two pervasive clusters (paper_trader dict-fallback + inference datetime misuse).
+`run_training` only saves to `config.model_save_path`. During walk-forward that path points to `_fold{N}.pt` files. The master `best.pt` is never created. `run_threshold_optimization` calls `load_model(config)` which tries `torch.load("data/models/best.pt")` → **crash**.
 
-**Severity:** MEDIUM — hygiene only, no runtime impact. Static-type false positives mask real regressions later; that's the long-term concern.
+If a stale `best.pt` exists from a prior non-walk-forward run, it silently loads an **unrelated** model — silently-wrong Sharpe scores.
 
----
-
-### 3. N-MODEL-META-1. No `model_metadata.json` sidecar for `best.pt`
-
-**Where:** `training/train.py` saves `best.pt` + `checkpoint_seed*.pt`. `eval_colab.py` writes `data/models/eval_log.csv` but **no per-model metadata**. Verified by literal grep — `metadata.json` / `model_metadata` / `.with_suffix(".json")` writers do not exist anywhere in the project.
-
-**Why it matters:** when you promote a checkpoint to `best.pt`, the original training config (loss / epochs / seeds / Sharpe / threshold / `data_hash` / `trained_at`) is lost. Three months out, you can't answer "what hyperparameters was `best.pt` trained with?" or "is this model stale relative to current data?".
-
-**Real fix:** at end of `run_training`, write alongside `best.pt`:
+**Fix:** After the fold loop, promote the best fold model to `best.pt`. ~20 min.
 
 ```python
-# training/train.py  (in run_training, after final save)
-import json
-from datetime import UTC, datetime
-meta_path = Path(config.model_save_path).with_suffix(".json")
-meta_path.write_text(json.dumps({
-    "trained_at": datetime.now(UTC).isoformat(),
-    "config_hash": hash_config(config),
-    "loss": loss_mode,
-    "n_seeds": n_seeds,
-    "epochs": epochs_run,
-    "val_sharpe": best_val_sharpe,
-    "val_buy_thresh": buy_t,
-    "val_sell_thresh": sell_t,
-    "features_path": config.features_path,
-    "scaler_path": str(scaler_path),
-}, indent=2))
+# After fold loop, before run_threshold_optimization:
+import shutil
+best_fold_path = None
+for fold in range(fold_count):
+    fp = Path(orig_save_path).with_name(f"best_fold{fold}.pt")
+    if fp.exists():
+        best_fold_path = fp
+if best_fold_path:
+    shutil.copy2(best_fold_path, orig_save_path)
 ```
 
-…then have `eval_colab.py` read it during promotion, and **refuse to overwrite if `trained_at` is more recent** than the current `best.pt`.
+---
 
-**Severity:** MEDIUM — reproducibility gap. Affects future audits ("what does this model actually do?"). No crash, no data loss.
+### 3. Colab pretrain chaining doesn't work — trains from scratch twice
+
+**Where:** `src/colab_gen.py` generated script, pretrain block.
+
+**What happens:** When `--colab-template --pretrain` is used, the generated script does:
+
+```python
+# Run 1: sys.argv includes --pretrain
+_run()   # → main.py sees args.pretrain=True
+         # → pretrain_path = "data/models/pretrain/best.pt"
+         # → BUT this file doesn't exist yet (we haven't pretrained!)
+         # → Path(pretrain_path).exists() = False → silently skipped
+         # → trains from scratch, saves to data/models/best.pt
+
+# Run 2: sys.argv has --pretrain REMOVED
+_run()   # → main.py sees args.pretrain=False
+         # → pretrain_path = None
+         # → trains from scratch AGAIN, ignoring run 1's weights entirely
+```
+
+The intended "pretrain → fine-tune" flow never happens. Both runs train from scratch independently, wasting a full GPU training cycle.
+
+**Fix:** Restructure the generated script so Run 1 uses `--mode pretrain` (saves to `pretrain_weights_path`) and Run 2 uses `--mode train --pretrain` (loads those weights and fine-tunes). ~20 min.
+
+```python
+# In generate_colab_script, replace the pretrain block with:
+if do_pretrain:
+    # Run 1: D6 pre-training
+    pretrain_argv = [a for a in flaglist]
+    for i, a in enumerate(pretrain_argv):
+        if a == "--mode":
+            pretrain_argv[i+1] = "pretrain"
+    print(f"[{time.time()-start:.0f}s] Pre-training...")
+    sv = sys.argv; sys.argv = pretrain_argv; _run()
+    print(f"[{time.time()-start:.0f}s] Pre-training done. Fine-tuning...")
+    sys.argv = flaglist  # restore original (with --mode train --pretrain)
+_run()
+```
 
 ---
 
-## RESOLVED — audit trail (won't re-litigate)
+## HIGH
 
-Verified via literal grep / line reads on the post-`f3e49d9` tree:
+### 4. Causal mask creates alphabetical stock-order bias
 
-| Item | Fix commit | Verification |
-|---|---|---|
-| **UX-N3 (HIGH)** `Live` not context-managed in `trade.py` | prior-batch (post `1560f48`) | `trade.py` rewrote main loop with `with live_ctx as live:` block (~L224); `_NoopLive` stub for headless. Terminal restored on any exception. |
-| **UX-N1 (HIGH)** cancel-orders loop in `reconcile` freeze | prior-batch | `src/paper_trader.py:181` now calls `self.trade_client.cancel_orders()` (single round-trip). The only remaining per-ticker `cancel_open_orders(ticker)` is in `textual_trader.py:action_liquidate` — user-initiated, one-shot. (Note: N-RETRY-1 above addresses the *retry* gap on this bulk call.) |
-| **N-LOG-1 (MEDIUM)** audit-trail writer TUI-only | prior-batch | `PaperTrader._audit(trades, equity)` is now called from `reconcile()` (line 269). All callers (TUI, Rich CLI, `main.py --mode trade`, future scripts) share the `data/paper_trades.csvl` writer. |
-| **N-MODEL-LEAK-1 (CRITICAL)** Sharpe-on-val-then-promote | `dea2dae` | `eval_colab.py:39-41, 78-83` loads both `val.npz` (threshold opt only) and `test.npz` (Sharpe for selection). |
-| **N-DATAQ-1 (HIGH)** no exchange-calendar support | `f3e49d9` series | `src/inference.py` has `NYSE_HOLIDAYS` + `_nth_weekday_of_month` / `_last_weekday_of_month` + `_is_nyse_holiday(d)` + `_last_business_day()`. |
-| **N-PORT-CAP-1 (MEDIUM)** per-position cap not portfolio | prior-batch | `config.max_portfolio_pct = 0.5` + `portfolio_capped = …` check in `reconcile()` (line 174–176). Both per-position and portfolio gates enforced. |
-| **H-NEW3 / M-NEW1** `round()` → `math.floor` for sellable qty | `402b5d1` | `textual_trader.py:642`; `trade.py:99` use `math.floor(abs(pos['qty']))`. `import math` both files. |
-| **UX-N2** no "PAPER TRADING" badge | `402b5d1` | `Header(show_clock=True, sub_title="PAPER TRADING")` in `textual_trader.py:392`. |
-| **N-HIGH-1** `+/-` keys crash before `on_mount` | `402b5d1` | `self._timer: Timer \| None = None` in `__init__`; `if self._timer is not None: stop()` in `action_interval_*`. |
-| **L-NEW2** sparkline carries over after asset-switch | `402b5d1` | `self._equity_history.clear()` in `_switch_asset` (line 506). |
-| **N-LIVE-LOCKOUT-1** `alpaca_paper=False` trades real money silently | `1560f48` | `main.py:520-525` checks `ALPACA_LIVE_CONFIRM=="true"`; `LiquidateConfirm` ModalScreen for destructive UI actions. |
-| **N-KILL-1** no liquidate-all / emergency stop | `1560f48` | `LiquidateConfirm` modal + `action_liquidate` triggers `close_all_positions()` + cancel-orders sweep. (Note: N-RETRY-1 above adds retry to the close path.) |
-| **N-OBSERVE-1** only stderr logging | prior-batch | `setup_logger()` uses `RotatingFileHandler(log_file, maxBytes=10MB, backupCount=5)`, defaults to `data/trading_bot.log`. |
-| **M-NEW2** disk reload every cycle | `dad479e` | `run_inference(..., model=None)` accepts pre-loaded model. (Note: call sites still don't pass `self._model`, so disk-load happens *every* cycle today. Polish, not correctness.) |
-| **H-NEW4** `set_interval` not rescheduled | `dad479e` | `_timer` saved, `stop()`+`set_interval()` on `+/-` keys. |
-| **C-NEW1** first-exception AttributeError | `dad479e` | `_last_error = None`, `_error_count = 0` in `__init__`. |
-| **C-NEW2** PaperTrader not rebuilt on asset-switch | `dad479e` | `self._trader = PaperTrader(self._config)` inside `_switch_asset`. (Note: model itself still re-loads on each `run_inference` from disk via the `model=None` fallback — works correctly today.) |
-| **Fold caching** zombie fold persistence | `dea2dae` | `folds_meta.json` sidecar fingerprint; `_folds_match_config()` re-validates before reuse. |
-| **market_state → threshold opt** round-trip | `ce1a881` | `training/threshold.py` accepts `market_state`; duplicate timer init removed. |
-| **M1** tqdm monkey-patch scope leak | `605fef8` | `_NoopTqdm` is wired in `on_mount` and restored in `on_unmount` (`textual_trader.py`) — no longer globally scoped. |
-| **605fef8 batch** (infra hardening) | `605fef8` | 9 files / +963/-335. Crypto pipeline, .env, CI, fold separation, etc. |
-| **CI auth** | `f3e49d9` | `.github/workflows/deploy.yml` uses `github.actor` + `secrets.GITHUB_TOKEN` for git push. |
+**Where:** `models/stock_model.py` lines 99–106.
+
+**The problem:**
+
+```python
+stock_ids = torch.arange(self.n_stocks, device=x.device)   # 0, 1, 2, ..., N-1
+x = x + self.stock_embed(stock_ids).unsqueeze(0)
+
+causal_mask = nn.Transformer.generate_square_subsequent_mask(self.n_stocks)
+x = self.transformer(x, memory=x, tgt_mask=causal_mask, tgt_is_causal=True)
+```
+
+Tickers are sorted alphabetically (`get_sp500_tickers()` returns `sorted(...)`). The causal mask means stock 0 ("A") can only attend to itself, while stock 502 ("ZTS") can attend to all 503 stocks. This creates a **systematic informational asymmetry** based purely on ticker name — an arbitrary artifact with no economic meaning.
+
+**Fix:** Shuffle stock indices per forward pass (random permutation). ~30 min.
 
 ---
 
-## DEFERRED — Phase-4+ (features, NOT bugs)
+## MEDIUM
 
-Tracked so future audits don't re-flag them:
+### 5. No validation Sharpe monitoring during training
 
-- **F-NL1** Limit-order & stop-loss support (currently market orders only)
-- **F-NL2** Dry-run mode (log trades without submitting)
-- **F-NL3** Corporate-actions handling (splits, dividends, mergers)
-- **F-NL4** Fetch-failure telemetry + retry heuristics
-- **F-NL5** USD-based risk sizing (vs current fixed `trade_buy_qty`)
-- **F-NL6** Multi-strategy / date-bounded wallet rotation
-- **F-NL7** Strategy docstring + architectural notes
-- **F-NL8** Alpaca ticker-format compatibility (BRK.B, BF.B)
-- **F-CLEANUP-1** Dead code: `_audit_path = Path(...)` set twice in `PaperTrader.__init__` (lines 64, 65). The second assignment overrides the first; bundle into PR-OPS-3.
+**Where:** `training/train.py` lines 241–280.
+
+Early stopping and model selection use `val_loss` (MSE/ranking loss). But the downstream metric is **Sharpe ratio**, and MSE does not correlate perfectly with Sharpe. A model with better `val_loss` can have worse trading performance. The post-training threshold optimization has no visibility into whether an earlier checkpoint would have been better.
+
+**Fix:** Compute val Sharpe every 10 epochs alongside the checkpoint save. ~45 min.
+
+### 6. Feature cache invalidation only checks raw data, not feature code
+
+**Where:** `src/features.py` lines 277–295.
+
+`_data_hash(raw_data_dir)` hashes raw CSV files (CRC32 + mtime + size). If the feature computation code changes (new indicators, different window logic), the cache does NOT invalidate. Training silently uses stale features.
+
+**Fix:** Include a hash of `features.py` source in the cache key. ~15 min.
+
+### 7. Duplicate paper-trading loop between `main.py` and `trade.py`
+
+**Where:** `main.py` `run_paper_trading()` (40 lines) vs `trade.py` `main()` (80 lines).
+
+Identical orchestration logic in two places: configure `PaperTrader`, load thresholds, `while True` loop with `market_open()` check, `run_inference` + `reconcile`, Rich rendering. `main.py` even imports `make_trade_table`/`build_layout` from `trade.py`. Every bug fix must be made twice.
+
+**Fix:** Have `main.py --mode trade` delegate to `trade.main()`, or extract the shared loop. ~45 min.
+
+### 8. Colab script installs `pyperclip` but never uses it
+
+**Where:** `src/colab_gen.py` generated script, Colab pip install line.
+
+`pyperclip` is installed on Colab but the generated script never calls it (it's only used locally for clipboard copy). Wasteful install.
+
+**Fix:** Remove `pyperclip` from the Colab install line. ~1 min.
 
 ---
 
-## Recommended PR sequence (≈½ day total)
+## LOW
 
-| PR | Items | Effort |
-|---|---|---|
-| **PR-OPS-3A — Network hardening** | N-RETRY-1 (wrap `cancel_orders` + expose `close_all_positions` through PaperTrader with `_retry`) | ~30 min |
-| **PR-OPS-3B — Type hygiene** | mypy 52 → ≤44 (typed `TradeAccount` adapters + fix `datetime.datetime.date` misuse + `CryptoBarsRequest` str→datetime) | ~2–3 h |
-| **PR-OPS-3C — Reproducibility** | `model_metadata.json` sidecar + `eval_colab.py` reads + refuses-to-overwrite newer | ~1 h |
-| *(bundled cleanup)* | F-CLEANUP-1 (dead `_audit_path` line) | ~5 min, fold into 3A |
+### 9. Vestigial `Console(theme=_THEME)` in `trade.py:132`
 
-**Net state after PRs:** zero outstanding CRITICAL or HIGH bugs, mypy at-or-below baseline, model promotion has a real audit trail.
+```python
+if not args.headless:
+    Console(theme=_THEME)  # init theme for Rich
+```
+
+Creates and discards a Console. Rich themes are per-console — this line has zero effect. ~1 min fix.
+
+### 10. mypy 34 errors — known noise floor
+
+**By file:** `src/paper_trader.py` (27), `src/crypto_pipeline.py` (2), `textual_trader.py` (1), tests (2), utils (1), data_pipeline (1).
+
+All SDK-type-level mismatches. Project converged on `# type: ignore`. No runtime impact.
+
+---
+
+## Architecture / Data Improvements (future-phase)
+
+| ID | Improvement | Rationale |
+|----|-------------|-----------|
+| **A2** | `listnet_loss` temperature (0.1) too aggressive | `target / 0.1` does hard top-1 selection, losing distribution-matching. |
+| **A3** | Survivorship bias in S&P 500 universe | Current constituents only — delisted companies 2015–2025 excluded. |
+| **A4** | No data augmentation | Gaussian noise, block-bootstrap, or regime-shift augmentation. |
+| **A5** | Walk-forward: no ensemble of fold thresholds | Each fold has own threshold; inference uses single threshold. |
+| **A6** | Pretrain `drop_last=True` on all loaders | ~3% data loss for small crypto datasets. |
+| **B4** | `margin_ranking_loss` O(n²) memory | (batch, 500, 500) tensors — ~128 MB/batch. Scales poorly. |
+
+---
+
+## Recommended PR ordering
+
+| Priority | PR | Items | Effort |
+|----------|----|----|--------|
+| **1 (now)** | Fix Colab generation | #1 (lazy-import deps) + #3 (pretrain chaining) + #8 (pyperclip) | ~30 min |
+| **2 (now)** | Fix walk-forward crash | #2 (promote fold model) + A5 (fold threshold ensemble) | ~30 min |
+| **3 (today)** | Architecture bias fix | #4 (stock order randomization) | ~30 min |
+| **4 (this week)** | Training observability | #5 (val Sharpe) + #6 (feature hash) | ~1 hr |
+| **5 (this week)** | De-duplicate trading loop | #7 (merge main.py/trade.py) | ~45 min |
+| **6 (whenever)** | Cosmetic cleanup | #9 (vestigial Console) | ~1 min |

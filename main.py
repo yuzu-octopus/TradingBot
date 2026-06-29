@@ -20,9 +20,7 @@ from src.features import (
     save_cached_features,
 )
 from src.inference import run_inference
-from src.paper_trader import PaperTrader, setup_logger
-from src.utils import load_threshold
-from trade import build_layout, make_trade_table
+from src.utils import load_threshold, setup_logger
 from training.threshold import run_threshold_optimization
 from training.train import run_training
 
@@ -220,6 +218,9 @@ def print_signals(results: dict[str, dict]) -> None:
 
 
 def run_paper_trading(config: Config, args: argparse.Namespace) -> None:
+    from src.paper_trader import PaperTrader
+    from trade import build_layout, make_trade_table
+
     config.trade_interval_minutes = args.trade_interval
     config.trade_buy_qty = args.trade_buy_qty
     config.trade_sell_qty = args.trade_sell_qty
@@ -571,13 +572,13 @@ def main() -> None:
 
         pretrain_path = config.pretrain_weights_path if args.pretrain else None
         fold_count = n_folds if args.walk_forward else 1
+        orig_save_path = config.model_save_path
         for fold in range(fold_count):
             if args.walk_forward:
                 print(f"\n=== Walk-Forward Fold {fold + 1}/{fold_count} ===")
                 fold_model_path = config.model_save_path.replace(
                     ".pt", f"_fold{fold}.pt"
                 )
-                orig_save_path = config.model_save_path
                 config.model_save_path = fold_model_path
                 rt_args = {
                     "config": config,
@@ -610,6 +611,21 @@ def main() -> None:
             import torch.distributed as dist
 
             dist.barrier()
+
+        # Walk-forward: promote best fold model to best.pt so
+        # run_threshold_optimization can load it (it was never written
+        # during the fold loop since model_save_path pointed to _fold{N}.pt).
+        if args.walk_forward:
+            import shutil
+
+            best_fold_path = None
+            for fold in range(fold_count):
+                fp = Path(orig_save_path).with_name(f"best_fold{fold}.pt")
+                if fp.exists():
+                    best_fold_path = fp
+            if best_fold_path:
+                shutil.copy2(best_fold_path, orig_save_path)
+                print(f"  Promoted {best_fold_path.name} to {orig_save_path}")
 
         print("\n=== Threshold Optimization ===")
         buy_t, sell_t = run_threshold_optimization(config)
