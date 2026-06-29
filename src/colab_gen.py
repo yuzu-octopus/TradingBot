@@ -93,11 +93,16 @@ start = time.time()
 IS_KAGGLE = "KAGGLE_KERNEL_RUN_TYPE" in os.environ
 
 print("Installing dependencies...")
+# Install ALL third-party deps from pyproject.toml. Even though main.py
+# lazy-imports PaperTrader/trade, src.crypto_pipeline still imports
+# alpaca-py at module load (it sits in the import chain). torch/pandas/etc.
+# are pre-installed on Colab GPU runtimes but pinning them guarantees the
+# versions we tested against.
 if IS_KAGGLE:
     import subprocess as _sp
-    _sp.run("pip install -q unlockedpd>=0.3.0 yfinance>=1.4.1 lxml".split())
+    _sp.run("pip install -q unlockedpd>=0.3.0 yfinance>=1.4.1 lxml>=6.1.1 alpaca-py>=0.43.0 torch numpy pandas scikit-learn tqdm rich".split())
 else:
-    get_ipython().system("pip install -q unlockedpd>=0.3.0 yfinance>=1.4.1 lxml>=6.1.1")
+    get_ipython().system("pip install -q unlockedpd>=0.3.0 yfinance>=1.4.1 lxml>=6.1.1 alpaca-py>=0.43.0 torch numpy pandas scikit-learn tqdm rich")
 
 import torch
 device_count = torch.cuda.device_count()
