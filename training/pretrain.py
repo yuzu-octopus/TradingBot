@@ -87,9 +87,32 @@ def pretrain(
     ).to(device)
     top_head = wrap_ddp(top_head, device)
 
+    mkt = market_state if market_state is not None else np.zeros((len(features), 5))
+
+    # Guard against empty or insufficient training data BEFORE any tensor ops.
+    # prepare_top requires at least pretrain_top_n_days rows; fewer rows
+    # produce an empty iterable that crashes np.stack with "need at least
+    # one array to stack".
+    min_dates = max(2, config.pretrain_top_n_days)
+    for name, arr in [("features", features), ("targets", targets)]:
+        if arr.shape[0] == 0:
+            msg = (
+                f"No training data available — {name} array is empty. "
+                "This usually means the configured date ranges don't overlap "
+                "with the available data. Try a wider date range or fewer assets."
+            )
+            raise ValueError(msg)
+        if arr.shape[0] < min_dates:
+            msg = (
+                f"Not enough training data — {name} has {arr.shape[0]} rows "
+                f"but need at least {min_dates}. The data split may be too "
+                "aggressive for this asset class."
+            )
+            raise ValueError(msg)
+
     mpp_x, mpp_y, mpp_mask = prepare_mpp(features, targets, config.pretrain_mask_ratio)
     top_x, top_y, _top_nc = prepare_top(features, config.pretrain_top_n_days)
-    mkt = market_state if market_state is not None else np.zeros((len(features), 5))
+
     mkt_t = torch.tensor(mkt, dtype=torch.float32)
 
     # Wrap arrays as TensorDatasets so DistributedSampler accepts them (its signature

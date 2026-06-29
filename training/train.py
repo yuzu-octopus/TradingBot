@@ -113,6 +113,15 @@ def train(
     pretrain_path: str | None = None,
     checkpoint_path: str = CHECKPOINT_PATH,
 ) -> tuple[nn.Module, StandardScaler]:
+    # Guard against empty training data before any tensor ops.
+    if train_features.shape[0] == 0 or train_targets.shape[0] == 0:
+        msg = (
+            "No training data available — features or targets array is empty. "
+            "This usually means the configured date ranges don't overlap with "
+            "the available data. For crypto, try adjusting the split."
+        )
+        raise ValueError(msg)
+
     scaler = StandardScaler()
     train_scaled = scale_features(
         train_features, scaler.fit(train_features.reshape(-1, config.n_features))

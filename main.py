@@ -1,10 +1,7 @@
 import argparse
 import json
 import os
-import time
-from datetime import datetime
 from pathlib import Path
-from zoneinfo import ZoneInfo
 
 import numpy as np
 import pandas as pd
@@ -19,7 +16,6 @@ from src.features import (
     load_cached_features,
     save_cached_features,
 )
-from src.inference import run_inference
 from src.utils import load_threshold, setup_logger
 from training.threshold import run_threshold_optimization
 from training.train import run_training
@@ -152,6 +148,26 @@ def prepare_data(config: Config) -> int:
     print(
         f"  ({len(tickers)} stocks, {features.shape[2]} features, {features.shape[0]} dates)"
     )
+
+    # Dynamic date split for crypto — crypto data starts later than stocks
+    # and varies significantly across pairs. A percentage-based split from
+    # the actual available dates is more robust than hardcoded date ranges.
+    if config.asset_class == "crypto":
+        n = len(dates)
+        if n < 100:
+            msg = f"Not enough crypto data ({n} dates, need >= 100)"
+            raise ValueError(msg)
+        t_end = int(n * 0.6)
+        v_end = int(n * 0.8)
+        config.train_start = dates[0]
+        config.train_end = dates[t_end - 1]
+        config.val_start = dates[t_end]
+        config.val_end = dates[v_end - 1]
+        config.test_start = dates[v_end]
+        config.test_end = dates[-1]
+        print(
+            f"  Crypto split: train={dates[0]}..{dates[t_end - 1]}, val={dates[t_end]}..{dates[v_end - 1]}, test={dates[v_end]}..{dates[-1]}"
+        )
 
     train_mask, val_mask, test_mask = _split_date_range(dates, config)
     targets = build_targets(raw_data, tickers, dates, config.label_max_return)
@@ -434,6 +450,15 @@ def main() -> None:
         config.raw_data_path = "data/crypto/raw"
         config.features_path = "data/crypto/features"
         config.model_save_path = "data/models/crypto/best.pt"
+        # Crypto data starts later than stocks — most pairs have data from
+        # 2021 onwards via Alpaca. The default 2015-2025 stock date ranges
+        # produce 0 train + 0 val splits when applied to crypto.
+        config.train_start = "2021-01-01"
+        config.train_end = "2023-06-30"
+        config.val_start = "2023-07-01"
+        config.val_end = "2023-12-31"
+        config.test_start = "2024-01-01"
+        config.test_end = "2025-06-01"
         print(f"Loaded {len(config.tickers)} crypto pairs ({config.crypto_pairs})")
     if args.tickers_file:
         with Path(args.tickers_file).open() as f:

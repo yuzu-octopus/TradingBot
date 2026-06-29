@@ -103,10 +103,9 @@ class StockTransformer(nn.Module):
         # informational advantage.
         perm = torch.randperm(self.n_stocks, device=x.device)
         x = x[:, perm, :]
-        stock_ids = torch.arange(self.n_stocks, device=x.device)
         x = self.input_proj(x)
         x = self.dropout(x)
-        x = x + self.stock_embed(stock_ids).unsqueeze(0)
+        x = x + self.stock_embed(perm).unsqueeze(0)
         causal_mask = nn.Transformer.generate_square_subsequent_mask(
             self.n_stocks, device=x.device
         )
