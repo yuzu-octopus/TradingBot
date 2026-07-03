@@ -180,7 +180,7 @@ def _load_dotenv() -> None:
                 continue
             key, _, val = line.partition("=")
             if key not in os.environ:
-                os.environ[key] = val
+                os.environ[key] = val.strip('"')
 
 
 class ThresholdConfirm(ModalScreen[bool]):

@@ -29,7 +29,8 @@ Python 3.14 via `.python-version`. uv manages everything — no manual `.venv/bi
 uv run ruff format --check .    # Format check
 uv run ruff check .             # Lint
 uv run mypy .                   # Typecheck (use `# type: ignore` for ML code)
-uv run pytest                   # Tests
+uv run pytest                   # Tests (90 passing)
+uv run pre-commit run --all-files  # Run pre-commit hooks
 ```
 
 `mypy` accepts a single global mypy config in `pyproject.toml`:

@@ -26,6 +26,9 @@ filterwarnings = [
     "ignore::pandas.errors.Pandas4Warning",
 ]
 
+[tool.ruff.lint]
+ignore = ["PD901"]  # df is a perfectly fine variable name for DataFrames
+
 [tool.mypy]
 strict_optional = true
 
@@ -78,6 +81,7 @@ ignore_missing_imports = true
 dev = [
     "mypy>=2.1.0",
     "pandas-stubs>=3.0.3.260530",
+    "pre-commit>=4.6.0",
     "pytest>=9.1.1",
     "ruff>=0.15.18",
     "types-pyperclip>=1.11.0.20260508",

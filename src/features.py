@@ -5,7 +5,6 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-import unlockedpd
 from tqdm import tqdm
 
 WINDOW_1Y = 252
