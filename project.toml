@@ -43,8 +43,8 @@ title = "Features"
 icon = "grid"
 
 [[sections.items]]
-title = "Decoder-Only Transformer"
-body = "Causal masking across stocks — each stock attends to itself and preceding stocks. Research shows decoder-only beats encoder-only for stock prediction. ~478K parameters."
+title = "Encoder-Only Transformer"
+body = "Full bidirectional attention — every stock attends to every other stock. Research shows this architecture captures cross-stock relationships effectively. ~478K parameters."
 
 [[sections.items]]
 title = "Multi-Window Features"
@@ -139,7 +139,7 @@ headers = ["Property", "Value"]
 cells = ["Parameters", "~478K"]
 
 [[sections.rows]]
-cells = ["Architecture", "Decoder-only Transformer (causal), 3 layers, 4 heads"]
+cells = ["Architecture", "Encoder-only Transformer (full bidirectional), 3 layers, 4 heads"]
 
 [[sections.rows]]
 cells = ["Output head", "RankGLU (residual bottleneck GLU)"]
@@ -184,7 +184,7 @@ body = "Builds parallel feature matrix: 30 technical indicators per stock per da
 
 [[sections.items]]
 title = "3. Model"
-body = "Decoder-only Transformer with causal masking. Each stock attends to itself and preceding stocks. MarketGate rescales features by SPY state. RankGLU output head produces confidence scores."
+body = "Encoder-only Transformer with full bidirectional attention. Every stock attends to every other stock. MarketGate rescales features by SPY state. RankGLU output head produces confidence scores."
 
 [[sections.items]]
 title = "4. Training"

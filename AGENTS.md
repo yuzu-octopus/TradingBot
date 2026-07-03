@@ -73,7 +73,7 @@ main.py              # Entry point: --mode train|infer, --loss mse|msrr|margin|l
 
 ## Key architecture decisions
 
-- **Decoder-only with causal mask**: Each stock attends to itself and preceding stocks. Research shows decoder-only beats encoder-only for stock prediction.
+- **Encoder-only with full bidirectional attention**: Every stock attends to every other stock. Research shows this architecture captures cross-stock relationships effectively.
 - **RankGLU output head**: Residual bottleneck GLU instead of linear head. Better ranking. From RankGLU paper (arXiv 2606.08930).
 - **Market-guided gating**: SPY market state rescales features per day. From MASTER (AAAI 2024).
 - **Cross-sectional z-score normalization**: Targets normalized per day (mean=0, std=1). Standard for ranking-aware models.

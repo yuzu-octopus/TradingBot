@@ -99,7 +99,7 @@ trade.py              → Standalone paper trading script (Rich display)
 
 1. **Data:** Downloads OHLCV for all S&P 500 stocks via yfinance (cached to `data/stocks/`)
 2. **Features:** For each date, computes window features from 1y, 1m, 1w, 1d lookbacks — including SMA, RSI, MACD, Bollinger Bands, volatility, returns, drawdown. **Parallelized** across stocks for speed.
-3. **Model:** Decoder-only Transformer with causal masking + RankGLU output head + market-guided gating (SPY state). Cross-stock self-attention.
+3. **Model:** Encoder-only Transformer (full bidirectional self-attention) + RankGLU output head + market-guided gating (SPY state). Cross-stock self-attention.
 4. **Training:** Supervised regression on next-day return. MSE, MSRR, margin ranking, or ListNet loss. Mixed precision, gradient clipping, weight decay, cosine annealing, early stopping.
 5. **Threshold:** Post-training, calibrates scores via isotonic regression, then optimizes separate buy/sell thresholds **maximizing Sharpe ratio** (not just return).
 
@@ -108,10 +108,10 @@ trade.py              → Standalone paper trading script (Rich display)
 | Property | Value |
 |----------|-------|
 | Parameters | ~478K |
-| Architecture | Decoder-only Transformer (causal), 3 layers, 4 heads |
+| Architecture | Encoder-only Transformer (full bidirectional), 3 layers, 4 heads |
 | Output head | RankGLU (residual bottleneck GLU) |
 | Conditioning | MarketGate (SPY-based gating) |
-| d_model | 128 |
+| d_model | 256 |
 | d_ff | 256 |
 | Activation | GELU |
 | Init | Xavier uniform |
@@ -163,9 +163,9 @@ DDP auto-detects via `dist.is_initialized()` — no flags needed. Under DDP:
 
 Uses float16 for compute-heavy operations (linear, matmul) while keeping critical ops (softmax, norm) in float32. Speeds up training ~30-40% on both CUDA and MPS with no accuracy loss.
 
-### Decoder-Only
+### Encoder-Only
 
-Uses causal masking — each stock can only attend to itself and preceding stocks. Acts as a regularizer. Research shows decoder-only outperforms encoder-only for stock prediction.
+Uses full bidirectional attention — every stock attends to every other stock. Research shows this architecture captures cross-stock relationships effectively.
 
 ### RankGLU
 
