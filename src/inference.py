@@ -24,6 +24,7 @@ def invalidate_inference_cache() -> None:
 # ponytail: hardcoded NYSE holidays, update yearly
 NYSE_HOLIDAYS: set[tuple[int, int]] = {
     (1, 1),  # New Year's Day
+    (6, 19),  # Juneteenth
     (7, 4),  # Independence Day
     (12, 25),  # Christmas
 }
@@ -48,6 +49,28 @@ def _last_weekday_of_month(year: int, month: int, weekday: int) -> int:
     return last.day - offset
 
 
+def _easter(year: int) -> date:
+    """Compute Easter Sunday using the Anonymous Gregorian algorithm."""
+    a = year % 19
+    b, c = divmod(year, 100)
+    d, e = divmod(b, 4)
+    f = (b + 8) // 25
+    g = (b - f + 1) // 3
+    h = (19 * a + b - d - g + 15) % 30
+    i, k = divmod(c, 4)
+    ell = (32 + 2 * e + 2 * i - h - k) % 7
+    m = (a + 11 * h + 22 * ell) // 451
+    month = (h + ell - 7 * m + 114) // 31
+    day = ((h + ell - 7 * m + 114) % 31) + 1
+    return date(year, month, day)
+
+
+def _is_good_friday(d: date) -> bool:
+    """Return True if d is Good Friday (2 days before Easter Sunday)."""
+    easter = _easter(d.year)
+    return d == easter - timedelta(days=2)
+
+
 def _is_nyse_holiday(d: date) -> bool:
     """Return True if d is a NYSE holiday."""
     fixed = {
@@ -57,7 +80,7 @@ def _is_nyse_holiday(d: date) -> bool:
         (9, _nth_weekday_of_month(d.year, 9, 0, 1)),  # Labor Day: 1st Mon of Sep
         (11, _nth_weekday_of_month(d.year, 11, 3, 4)),  # Thanksgiving: 4th Thu of Nov
     }
-    return (d.month, d.day) in NYSE_HOLIDAYS | fixed
+    return (d.month, d.day) in NYSE_HOLIDAYS | fixed or _is_good_friday(d)
 
 
 def _last_business_day() -> str:
