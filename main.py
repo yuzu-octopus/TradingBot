@@ -21,6 +21,27 @@ from training.threshold import run_threshold_optimization
 from training.train import run_training
 
 
+def _load_dotenv() -> None:
+    """Load .env file into os.environ without overwriting existing vars."""
+    env_path = Path(".env")
+    if not env_path.exists():
+        return
+    for raw_line in env_path.read_text().splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#"):
+            continue
+        if "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        key = key.strip()
+        value = value.strip()
+        # Strip surrounding quotes
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in ("'", '"'):
+            value = value[1:-1]
+        if key not in os.environ:
+            os.environ[key] = value
+
+
 def _fetch_data(config: Config) -> dict:
     if config.asset_class == "crypto":
         return fetch_crypto_data(
@@ -256,6 +277,7 @@ def run_paper_trading(config: Config, args: argparse.Namespace) -> None:
 
 
 def main() -> None:
+    _load_dotenv()
     parser = argparse.ArgumentParser(
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=(

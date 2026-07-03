@@ -1,7 +1,9 @@
 import math
+import os
 import time
 from argparse import ArgumentParser
 from datetime import datetime
+from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from rich.layout import Layout
@@ -14,6 +16,28 @@ from config import Config, get_sp500_tickers
 from src.inference import run_inference
 from src.paper_trader import PaperTrader
 from src.utils import load_threshold
+
+
+def _load_dotenv() -> None:
+    """Load .env file into os.environ without overwriting existing vars."""
+    env_path = Path(".env")
+    if not env_path.exists():
+        return
+    for raw_line in env_path.read_text().splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#"):
+            continue
+        if "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        key = key.strip()
+        value = value.strip()
+        # Strip surrounding quotes
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in ("'", '"'):
+            value = value[1:-1]
+        if key not in os.environ:
+            os.environ[key] = value
+
 
 _THEME = Theme(
     {
@@ -240,6 +264,7 @@ def run_trading_loop(
 
 
 def main():
+    _load_dotenv()
     parser = ArgumentParser(description="Paper trading bot using Alpaca")
     parser.add_argument(
         "--interval", type=int, default=15, help="Minutes between cycles"
