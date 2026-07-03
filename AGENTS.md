@@ -56,7 +56,7 @@ Generates a self-contained script (copies to clipboard). Auto-detects Colab vs K
 data/stocks/         # Per-stock CSVs (503 S&P 500 tickers)
 data/features/       # Preprocessed feature matrices + market state
 models/
-  stock_model.py     # StockTransformer — decoder-only + RankGLU + MarketGate
+  stock_model.py     # StockTransformer — encoder-only + RankGLU + MarketGate
 training/
   train.py           # Training loop (mixed precision, checkpoint/resume)
   threshold.py       # Post-training Sharpe-based threshold optimization

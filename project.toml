@@ -1,8 +1,8 @@
 [project]
 name = "TradingBot"
 tagline = "Multi-stock ML trading bot"
-subtitle = "All S&P 500 stocks pass through a single decoder-only Transformer in one forward pass. Learns inter-stock relationships — outputs per-stock buy/sell confidence scores from -1 to +1."
-description = "Multi-stock ML trading bot using a decoder-only Transformer with RankGLU output and market-guided gating. Learns inter-stock relationships across the S&P 500."
+subtitle = "All S&P 500 stocks pass through a single encoder-only Transformer in one forward pass. Learns inter-stock relationships — outputs per-stock buy/sell confidence scores from -1 to +1."
+description = "Multi-stock ML trading bot using an encoder-only Transformer with RankGLU output and market-guided gating. Learns inter-stock relationships across the S&P 500."
 github_url = "https://github.com/yuzu-octopus/TradingBot"
 page_url = "https://yuzu-octopus.github.io/TradingBot/"
 quickstart_url = "#quickstart"

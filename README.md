@@ -83,7 +83,7 @@ Place model zip in `data/models/colab/<run-name>/` and evaluate with `--model co
 ```
 main.py              → CLI entry point
 config.py            → Dataclass: tickers, model params, training settings
-models/stock_model.py → StockTransformer (decoder-only, RankGLU output, MarketGate)
+models/stock_model.py → StockTransformer (encoder-only, RankGLU output, MarketGate)
 src/data_pipeline.py  → yfinance data fetching with CSV caching
 src/features.py       → Window feature engineering + parallel build
 src/inference.py      → On-demand inference with market state
