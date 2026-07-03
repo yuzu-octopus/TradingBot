@@ -573,8 +573,8 @@
       <div class="grid">
         
         <div class="card">
-          <h3>Decoder-Only Transformer</h3>
-          <p>Causal masking across stocks — each stock attends to itself and preceding stocks. Research shows decoder-only beats encoder-only for stock prediction. ~478K parameters.</p>
+          <h3>Encoder-Only Transformer</h3>
+          <p>Full bidirectional attention — every stock attends to every other stock. Research shows this architecture captures cross-stock relationships effectively. ~478K parameters.</p>
         </div>
         
         <div class="card">
@@ -674,7 +674,7 @@
           
           <tr><td>Parameters</td><td>~478K</td></tr>
           
-          <tr><td>Architecture</td><td>Decoder-only Transformer (causal), 3 layers, 4 heads</td></tr>
+          <tr><td>Architecture</td><td>Encoder-only Transformer (full bidirectional), 3 layers, 4 heads</td></tr>
           
           <tr><td>Output head</td><td>RankGLU (residual bottleneck GLU)</td></tr>
           
@@ -713,7 +713,7 @@
         
         <li><strong>2. Features</strong> &mdash; Builds parallel feature matrix: 30 technical indicators per stock per date at 4 lookback windows (1y, 1m, 1w, 1d). SMA, RSI, MACD, Bollinger Bands, volatility, returns, max drawdown, volume ratio.</li>
         
-        <li><strong>3. Model</strong> &mdash; Decoder-only Transformer with causal masking. Each stock attends to itself and preceding stocks. MarketGate rescales features by SPY state. RankGLU output head produces confidence scores.</li>
+        <li><strong>3. Model</strong> &mdash; Encoder-only Transformer with full bidirectional attention. Every stock attends to every other stock. MarketGate rescales features by SPY state. RankGLU output head produces confidence scores.</li>
         
         <li><strong>4. Training</strong> &mdash; Supervised regression on next-day cross-sectional z-score returns. Supports MSE, MSRR (direct Sharpe optimization), margin ranking, and ListNet losses. Mixed precision, gradient accumulation, cosine annealing LR, early stopping.</li>
         
