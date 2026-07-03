@@ -4,16 +4,16 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>TradingBot | Multi-stock ML trading bot</title>
-  <meta name="description" content="Multi-stock ML trading bot using a decoder-only Transformer with RankGLU output and market-guided gating. Learns inter-stock relationships across the S&P 500.">
+  <meta name="description" content="Multi-stock ML trading bot using an encoder-only Transformer with RankGLU output and market-guided gating. Learns inter-stock relationships across the S&P 500.">
   <meta name="theme-color" content="#282a36">
   <meta property="og:type" content="website">
   <meta property="og:title" content="TradingBot | Multi-stock ML trading bot">
-  <meta property="og:description" content="Multi-stock ML trading bot using a decoder-only Transformer with RankGLU output and market-guided gating. Learns inter-stock relationships across the S&P 500.">
+  <meta property="og:description" content="Multi-stock ML trading bot using an encoder-only Transformer with RankGLU output and market-guided gating. Learns inter-stock relationships across the S&P 500.">
   <meta property="og:url" content="https://yuzu-octopus.github.io/TradingBot/">
   
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="TradingBot | Multi-stock ML trading bot">
-  <meta name="twitter:description" content="Multi-stock ML trading bot using a decoder-only Transformer with RankGLU output and market-guided gating. Learns inter-stock relationships across the S&P 500.">
+  <meta name="twitter:description" content="Multi-stock ML trading bot using an encoder-only Transformer with RankGLU output and market-guided gating. Learns inter-stock relationships across the S&P 500.">
   
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2064%2064%22%3E%0A%20%20%3Crect%20width%3D%2264%22%20height%3D%2264%22%20rx%3D%2212%22%20fill%3D%22%23282a36%22/%3E%0A%20%20%3Cline%20x1%3D%2216%22%20y1%3D%228%22%20x2%3D%2216%22%20y2%3D%2256%22%20stroke%3D%22%236272a4%22%20stroke-width%3D%220.5%22%20opacity%3D%220.3%22/%3E%0A%20%20%3Cline%20x1%3D%2232%22%20y1%3D%228%22%20x2%3D%2232%22%20y2%3D%2256%22%20stroke%3D%22%236272a4%22%20stroke-width%3D%220.5%22%20opacity%3D%220.3%22/%3E%0A%20%20%3Cline%20x1%3D%2248%22%20y1%3D%228%22%20x2%3D%2248%22%20y2%3D%2256%22%20stroke%3D%22%236272a4%22%20stroke-width%3D%220.5%22%20opacity%3D%220.3%22/%3E%0A%20%20%3Cpolyline%20points%3D%228%2C44%2020%2C30%2032%2C36%2044%2C18%2056%2C24%22%20fill%3D%22none%22%20stroke%3D%22%2350fa7b%22%20stroke-width%3D%224%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22/%3E%0A%20%20%3Ccircle%20cx%3D%2256%22%20cy%3D%2224%22%20r%3D%224%22%20fill%3D%22%23bd93f9%22/%3E%0A%3C/svg%3E%0A">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -554,7 +554,7 @@
     <div class="container">
       <h1>TradingBot</h1>
       <p class="tagline">Multi-stock ML trading bot</p>
-      <p class="subtitle">All S&P 500 stocks pass through a single decoder-only Transformer in one forward pass. Learns inter-stock relationships — outputs per-stock buy/sell confidence scores from -1 to +1.</p>
+      <p class="subtitle">All S&P 500 stocks pass through a single encoder-only Transformer in one forward pass. Learns inter-stock relationships — outputs per-stock buy/sell confidence scores from -1 to +1.</p>
       <div class="cta">
         <a href="https://github.com/yuzu-octopus/TradingBot" class="btn btn-primary">View on GitHub</a>
         
