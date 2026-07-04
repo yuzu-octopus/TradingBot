@@ -396,22 +396,31 @@
     .workflow-top {
       display: flex;
       align-items: center;
-      padding: 0 16px;
+      justify-content: center;
     }
     .workflow-dot {
-      width: 16px;
-      height: 16px;
-      min-width: 16px;
+      width: 28px;
+      height: 28px;
+      min-width: 28px;
       border-radius: 50%;
       background: var(--purple);
+      color: var(--bg);
+      font-size: 0.85rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      line-height: 1;
+      z-index: 1;
     }
     .workflow-line {
       flex: 1;
       height: 2px;
       background: var(--muted);
-      margin-left: 8px;
     }
-    .workflow-item:last-child .workflow-line { display: none; }
+    .workflow-item:first-child .workflow-line:first-child { visibility: hidden; }
+    .workflow-item:last-child .workflow-line:last-child { visibility: hidden; }
     .workflow-card {
       background: var(--panel);
       border: 1px solid var(--muted);
@@ -423,15 +432,6 @@
     .workflow-card:hover {
       border-color: var(--purple);
       transform: translateY(-2px);
-    }
-    .workflow-step {
-      display: inline-block;
-      font-size: 0.7rem;
-      color: var(--bg);
-      background: var(--purple);
-      padding: 1px 8px;
-      border-radius: 8px;
-      margin-bottom: 8px;
     }
     .workflow-card h4 {
       color: var(--purple);
@@ -505,12 +505,12 @@
     .token.comment, .token.prolog, .token.cdata, .token.doctype { color: var(--muted); }
     .token.punctuation { color: var(--fg); }
     .token.namespace { opacity: 0.8; }
-    .token.keyword, .token.operator { color: var(--pink); }
+    .token.keyword, .token.operator { color: var(--pink); background: none; }
     .token.string, .token.attr-value, .token.regex { color: var(--yellow); }
     .token.function, .token.attr-name { color: var(--green); }
     .token.number, .token.boolean, .token.constant, .token.parameter, .token.variable { color: var(--orange); }
-    .token.class-name, .token.builtin, .token.property, .token.url, .token.symbol { color: var(--cyan); }
-    .token.tag, .token.selector, .token.entity, .token.atrule { color: var(--pink); }
+    .token.class-name, .token.builtin, .token.property, .token.url, .token.symbol { color: var(--cyan); background: none; }
+    .token.tag, .token.selector, .token.entity, .token.atrule { color: var(--pink); background: none; }
     .token.decorator { color: var(--purple); }
     .token.important, .token.bold { font-weight: 700; }
     .token.italic { font-style: italic; }
@@ -569,46 +569,74 @@
 
     .timeline {
       list-style: none;
-      padding: 0;
-      position: relative;
-    }
-    .timeline::before {
-      content: '';
-      position: absolute;
-      left: 7px;
-      top: 4px;
-      bottom: 4px;
-      width: 2px;
-      background: var(--muted);
-      border-radius: 1px;
+      padding: 0 0 0 100px;
     }
     .timeline-item {
+      display: flex;
+      gap: 0;
       position: relative;
-      padding: 0 0 20px 28px;
     }
-    .timeline-item:last-child { padding-bottom: 0; }
-    .timeline-dot {
+    .timeline-item::before {
+      content: '';
       position: absolute;
-      left: 0;
-      top: 4px;
+      left: 80px;
+      top: 10px;
+      bottom: 0;
+      width: 2px;
+      background: var(--muted);
+      z-index: 0;
+    }
+    .timeline-item:last-child::before {
+      bottom: auto;
+      height: 10px;
+    }
+    .timeline-date-col {
+      width: 72px;
+      text-align: right;
+      flex-shrink: 0;
+      padding: 0 8px 20px 0;
+    }
+    .timeline-date {
+      font-size: 0.75rem;
+      color: var(--muted);
+      line-height: 16px;
+      display: block;
+      margin-top: 2px;
+    }
+    .timeline-marker {
+      width: 16px;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+    }
+    .timeline-dot {
       width: 16px;
       height: 16px;
       border-radius: 50%;
       background: var(--bg);
       border: 2px solid var(--purple);
+      z-index: 1;
+      flex-shrink: 0;
+      margin-top: 2px;
     }
     .timeline-content {
+      flex: 1;
       font-size: 0.85rem;
       color: var(--fg);
+      padding: 0 0 20px 12px;
     }
-    .timeline-date {
-      display: block;
-      font-size: 0.75rem;
-      color: var(--muted);
-      margin-bottom: 4px;
+    .timeline-content strong {
+      color: var(--purple);
+      line-height: 16px;
+      display: inline-block;
     }
-    .timeline-content strong { color: var(--purple); }
     .timeline-content p { margin-top: 4px; }
+    .timeline-item:last-child .timeline-content,
+    .timeline-item:last-child .timeline-date-col {
+      padding-bottom: 0;
+    }
 
     .terms {
       list-style: none;
@@ -722,12 +750,15 @@
       border-radius: 8px;
       text-decoration: none;
       color: var(--fg);
-      transition: all 0.25s;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      transform: translateY(0);
     }
 
     .link-card:hover {
       border-color: var(--purple);
-      background: color-mix(in srgb, var(--fg) 3%, transparent);
+      background: color-mix(in srgb, var(--fg) 5%, transparent);
+      transform: translateY(-3px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
     }
 
     .link-card strong { color: var(--cyan); flex-shrink: 0; }
@@ -1048,11 +1079,11 @@
         
         <div class="workflow-item">
           <div class="workflow-top">
-            <div class="workflow-dot"></div>
+            <div class="workflow-line"></div>
+            <div class="workflow-dot">1</div>
             <div class="workflow-line"></div>
           </div>
           <div class="workflow-card">
-            <span class="workflow-step">1</span>
             <h4>Data</h4>
             <p>Downloads OHLCV for all S&P 500 stocks via yfinance (~10 years), cached to CSV. Tickers fetched live from Wikipedia.</p>
           </div>
@@ -1060,11 +1091,11 @@
         
         <div class="workflow-item">
           <div class="workflow-top">
-            <div class="workflow-dot"></div>
+            <div class="workflow-line"></div>
+            <div class="workflow-dot">2</div>
             <div class="workflow-line"></div>
           </div>
           <div class="workflow-card">
-            <span class="workflow-step">2</span>
             <h4>Features</h4>
             <p>30 technical indicators at 4 lookback windows — 120 features per stock per day. SMA, RSI, MACD, Bollinger, volatility, returns, max drawdown, volume ratio.</p>
           </div>
@@ -1072,11 +1103,11 @@
         
         <div class="workflow-item">
           <div class="workflow-top">
-            <div class="workflow-dot"></div>
+            <div class="workflow-line"></div>
+            <div class="workflow-dot">3</div>
             <div class="workflow-line"></div>
           </div>
           <div class="workflow-card">
-            <span class="workflow-step">3</span>
             <h4>Model</h4>
             <p>Encoder-only Transformer with full bidirectional attention. Every stock attends to every other stock. MarketGate rescales features by SPY state.</p>
           </div>
@@ -1084,11 +1115,11 @@
         
         <div class="workflow-item">
           <div class="workflow-top">
-            <div class="workflow-dot"></div>
+            <div class="workflow-line"></div>
+            <div class="workflow-dot">4</div>
             <div class="workflow-line"></div>
           </div>
           <div class="workflow-card">
-            <span class="workflow-step">4</span>
             <h4>Training</h4>
             <p>Supervised on next-day z-score returns. Supports MSE, MSRR, margin ranking, ListNet losses. Mixed precision, gradient accumulation.</p>
           </div>
@@ -1096,11 +1127,11 @@
         
         <div class="workflow-item">
           <div class="workflow-top">
-            <div class="workflow-dot"></div>
+            <div class="workflow-line"></div>
+            <div class="workflow-dot">5</div>
             <div class="workflow-line"></div>
           </div>
           <div class="workflow-card">
-            <span class="workflow-step">5</span>
             <h4>Threshold</h4>
             <p>Post-training calibration via dual-threshold search maximizes Sharpe ratio. Paper trading via trade.py (Rich) or textual_trader.py (TUI).</p>
           </div>
