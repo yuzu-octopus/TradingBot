@@ -12,9 +12,13 @@
   <meta property="og:description" content="Multi-stock ML trading bot using an encoder-only Transformer with RankGLU output and market-guided gating. Learns inter-stock relationships across the S&P 500.">
   <meta property="og:url" content="https://yuzu-octopus.github.io/TradingBot/">
   
+  <meta property="og:image" content="https://yuzu-octopus.github.io/TradingBot/og-image.png">
+  
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="TradingBot | Multi-stock ML trading bot">
   <meta name="twitter:description" content="Multi-stock ML trading bot using an encoder-only Transformer with RankGLU output and market-guided gating. Learns inter-stock relationships across the S&P 500.">
+  
+  <meta name="twitter:image" content="https://yuzu-octopus.github.io/TradingBot/og-image.png">
   
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2064%2064%27%3E%3Crect%20width%3D%2764%27%20height%3D%2764%27%20rx%3D%2714%27%20fill%3D%27%2344475a%27/%3E%3Crect%20x%3D%2714%27%20y%3D%2716%27%20width%3D%2736%27%20height%3D%2732%27%20rx%3D%274%27%20fill%3D%27none%27%20stroke%3D%27%2350fa7b%27%20stroke-width%3D%272.5%27/%3E%3Cpath%20d%3D%27M24%2026h16%27%20stroke%3D%27%23bd93f9%27%20stroke-width%3D%272%27%20stroke-linecap%3D%27round%27/%3E%3Cpath%20d%3D%27M24%2032h12%27%20stroke%3D%27%236272a4%27%20stroke-width%3D%272%27%20stroke-linecap%3D%27round%27/%3E%3Cpath%20d%3D%27M24%2038h8%27%20stroke%3D%27%236272a4%27%20stroke-width%3D%272%27%20stroke-linecap%3D%27round%27/%3E%3Ccircle%20cx%3D%2748%27%20cy%3D%2716%27%20r%3D%279%27%20fill%3D%27%23bd93f9%27/%3E%3Cpath%20d%3D%27M45%2016h6M48%2013v6%27%20stroke%3D%27%23282a36%27%20stroke-width%3D%272%27%20stroke-linecap%3D%27round%27/%3E%3C/svg%3E" id="favicon">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -53,7 +57,7 @@
       --bg: #282a36;
       --panel: #44475a;
       --fg: #f8f8f2;
-      --muted: #6272a4;
+      --muted: #8ca0d7;
       --purple: #bd93f9;
       --pink: #ff79c6;
       --cyan: #8be9fd;
@@ -110,7 +114,9 @@
     a:focus-visible,
     .btn:focus-visible,
     .mobile-toggle:focus-visible,
-    .theme-toggle:focus-visible {
+    .theme-toggle:focus-visible,
+    summary:focus-visible,
+    .code-block-wrapper .copy-btn:focus-visible {
       outline: 2px solid var(--purple);
       outline-offset: 2px;
     }
@@ -234,6 +240,11 @@
       color: var(--fg);
     }
 
+    .sidebar-nav a.active {
+      background: color-mix(in srgb, var(--purple) 20%, transparent);
+      color: var(--purple);
+    }
+
     .sidebar-nav a .icon {
       width: 40px;
       min-width: 40px;
@@ -319,6 +330,7 @@
       gap: 12px;
       justify-content: center;
       flex-wrap: wrap;
+      align-items: center;
     }
 
     .btn {
@@ -327,12 +339,11 @@
       font-size: 0.8rem;
       border: 1px solid var(--muted);
       border-radius: 8px;
-      transition: all 0.2s;
+      transition: all 250ms cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     .btn:hover {
       transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     }
 
     .btn-primary {
@@ -358,14 +369,12 @@
       border: 1px solid var(--muted);
       border-radius: 8px;
       padding: 20px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-      transition: transform 0.25s, box-shadow 0.25s;
+      transition: transform 250ms cubic-bezier(0.4, 0, 0.2, 1), border-color 250ms cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     .card:hover {
       border-color: var(--purple);
       transform: translateY(-2px);
-      box-shadow: 0 8px 24px rgba(0,0,0,0.15);
     }
 
     .card h3 {
@@ -410,8 +419,6 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      text-align: center;
-      line-height: 1;
       z-index: 1;
     }
     .workflow-line {
@@ -427,7 +434,7 @@
       border-radius: 8px;
       padding: 16px;
       margin: 8px 8px 0;
-      transition: border-color 0.25s, transform 0.25s;
+      transition: transform 250ms cubic-bezier(0.4, 0, 0.2, 1), border-color 250ms cubic-bezier(0.4, 0, 0.2, 1);
     }
     .workflow-card:hover {
       border-color: var(--purple);
@@ -479,12 +486,6 @@
       overflow-x: auto;
     }
 
-    pre code {
-      color: var(--green);
-      font-size: 0.8rem;
-      line-height: 1.6;
-    }
-
     code {
       font-family: var(--font);
       color: var(--green);
@@ -494,14 +495,22 @@
       font-size: 0.8em;
     }
 
-    pre code {
+    pre code,
+    code[class*="language-"] {
       background: transparent;
       padding: 0;
+      font-size: 0.8rem;
+      line-height: 1.6;
+      text-shadow: none;
+    }
+    pre code { color: var(--green); }
+    code[class*="language-"] {
+      color: var(--fg);
+      font-family: var(--font);
     }
 
     /* Prism.js Dracula theme override — every token type */
     pre[class*="language-"] { background: var(--bg); border: 1px solid var(--muted); border-radius: 8px; padding: 16px; margin: 0; font-family: var(--font); font-size: 0.8rem; line-height: 1.6; }
-    code[class*="language-"] { text-shadow: none; font-family: var(--font); font-size: 0.8rem; background: none; padding: 0; color: var(--fg); }
     .token.comment, .token.prolog, .token.cdata, .token.doctype { color: var(--muted); }
     .token.punctuation { color: var(--fg); }
     .token.namespace { opacity: 0.8; }
@@ -542,7 +551,7 @@
       background: var(--panel);
       border: 1px solid var(--muted);
       border-radius: 8px;
-      box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+      vertical-align: middle;
     }
 
     .divider {
@@ -579,12 +588,15 @@
     .timeline-item::before {
       content: '';
       position: absolute;
-      left: 80px;
-      top: 10px;
+      left: 79px;
+      top: 0;
       bottom: 0;
       width: 2px;
       background: var(--muted);
       z-index: 0;
+    }
+    .timeline-item:first-child::before {
+      top: 10px;
     }
     .timeline-item:last-child::before {
       bottom: auto;
@@ -669,7 +681,7 @@
       border-radius: 8px;
       font-size: 0.75rem;
       color: var(--fg);
-      transition: all 0.25s;
+      transition: all 250ms cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     .stack .badge strong { color: var(--purple); }
@@ -750,7 +762,7 @@
       border-radius: 8px;
       text-decoration: none;
       color: var(--fg);
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      transition: all 250ms cubic-bezier(0.4, 0, 0.2, 1);
       transform: translateY(0);
     }
 
@@ -758,7 +770,6 @@
       border-color: var(--purple);
       background: color-mix(in srgb, var(--fg) 5%, transparent);
       transform: translateY(-3px);
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
     }
 
     .link-card strong { color: var(--cyan); flex-shrink: 0; }
@@ -771,7 +782,7 @@
 
     .link-arrow {
       color: var(--muted);
-      transition: transform 0.25s;
+      transition: transform 250ms cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     .link-card:hover .link-arrow {
@@ -809,11 +820,59 @@
     }
 
     @media (max-width: 900px) {
-      .sidebar { display: none; }
+      .sidebar {
+        display: flex;
+        transform: translateX(-100%);
+        visibility: hidden;
+        transition: transform 250ms cubic-bezier(0.4, 0, 0.2, 1), visibility 0s 250ms;
+      }
       .main { margin-left: 0; }
       .mobile-toggle { display: block; }
-      .sidebar.open { display: flex; }
+      .sidebar.open {
+        transform: translateX(0);
+        visibility: visible;
+        transition: transform 250ms cubic-bezier(0.4, 0, 0.2, 1), visibility 0s 0s;
+      }
       .sidebar-overlay.open { display: block; }
+    }
+
+    @media print {
+      .sidebar, .theme-toggle, .mobile-toggle, .sidebar-overlay { display: none !important; }
+      .main { margin-left: 0 !important; }
+      body { background: white; color: black; }
+      pre, code, .card, .callout { background: #f5f5f5; border: 1px solid #ccc; }
+      a { color: #0066cc; }
+      a[href^="http"]::after { content: " (" attr(href) ")"; font-size: 0.85em; overflow-wrap: break-word; }
+      .reveal { opacity: 1 !important; transform: none !important; }
+      .code-block-wrapper .copy-btn { display: none !important; }
+    }
+
+    .code-block-wrapper {
+      position: relative;
+    }
+    .code-block-wrapper .copy-btn {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: var(--panel);
+      border: 1px solid var(--muted);
+      color: var(--muted);
+      padding: 4px 6px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 250ms cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+    }
+    .code-block-wrapper .copy-btn .material-symbols-outlined {
+      font-size: 20px;
+    }
+    .code-block-wrapper .copy-btn:hover {
+      color: var(--purple);
+      border-color: var(--purple);
     }
   </style>
   <script>
@@ -821,9 +880,15 @@
     var saved = localStorage.getItem('theme');
     if (saved) {
       document.documentElement.setAttribute('data-theme', saved);
+    } else if (window.matchMedia('(prefers-color-scheme: light)').matches) {
+      document.documentElement.setAttribute('data-theme', 'light');
     }
+    var current = document.documentElement.getAttribute('data-theme') || 'dark';
+    document.querySelector('meta[name="theme-color"]').content =
+      current === 'light' ? '#FFFBEB' : '#282a36';
   })();
   </script>
+  <noscript><style>.reveal { opacity: 1 !important; transform: none !important; }</style></noscript>
 </head>
 <body>
 
@@ -866,40 +931,77 @@
 <span class="material-symbols-outlined icon-home" aria-hidden="true">home</span>
 </span> Home</a></li>
       
+      
+      
+      
       <li><a href="#features"><span class="icon">
 
 <span class="material-symbols-outlined icon-grid" aria-hidden="true">grid_view</span>
 </span> Features</a></li>
+      
+      
+      
+      
       
       <li><a href="#cli"><span class="icon">
 
 <span class="material-symbols-outlined icon-gear" aria-hidden="true">settings</span>
 </span> CLI Reference</a></li>
       
+      
+      
+      
+      
       <li><a href="#architecture"><span class="icon">
 
 <span class="material-symbols-outlined icon-chip" aria-hidden="true">memory</span>
 </span> Model Architecture</a></li>
+      
+      
+      
+      
+      
+      <li><a href="#milestones"><span class="icon">
+
+<span class="material-symbols-outlined icon-rocket" aria-hidden="true">rocket_launch</span>
+</span> Milestones</a></li>
+      
+      
+      
+      
       
       <li><a href="#how-it-works"><span class="icon">
 
 <span class="material-symbols-outlined icon-layers" aria-hidden="true">layers</span>
 </span> How It Works</a></li>
       
+      
+      
+      
+      
       <li><a href="#terms"><span class="icon">
 
 <span class="material-symbols-outlined icon-document" aria-hidden="true">description</span>
 </span> Terminology</a></li>
+      
+      
+      
+      
       
       <li><a href="#quickstart"><span class="icon">
 
 <span class="material-symbols-outlined icon-play" aria-hidden="true">play_arrow</span>
 </span> Quick Start</a></li>
       
+      
+      
+      
+      
       <li><a href="#stack"><span class="icon">
 
-<span class="material-symbols-outlined icon-layers" aria-hidden="true">layers</span>
+<span class="material-symbols-outlined icon-deploy" aria-hidden="true">cloud_upload</span>
 </span> Tech Stack</a></li>
+      
       
     </ul>
   </nav>
@@ -1063,6 +1165,57 @@
         </tbody>
       </table>
       </div>
+
+      
+    </div>
+  </section>
+  
+  <section id="milestones" class="reveal">
+    <div class="container">
+      
+      <h2>Milestones</h2>
+      
+
+      
+      <ul class="timeline">
+        
+        <li class="timeline-item">
+          <div class="timeline-date-col"><span class="timeline-date">Phase 1</span></div>
+          <div class="timeline-marker"><div class="timeline-dot"></div></div>
+          <div class="timeline-content">
+            <strong>Data Collection</strong>
+            <p>OHLCV download for all S&P 500 stocks via yfinance, cached to CSV</p>
+          </div>
+        </li>
+        
+        <li class="timeline-item">
+          <div class="timeline-date-col"><span class="timeline-date">Phase 2</span></div>
+          <div class="timeline-marker"><div class="timeline-dot"></div></div>
+          <div class="timeline-content">
+            <strong>Feature Engineering</strong>
+            <p>30 technical indicators at 4 lookback windows — 120 features per stock per day</p>
+          </div>
+        </li>
+        
+        <li class="timeline-item">
+          <div class="timeline-date-col"><span class="timeline-date">Phase 3</span></div>
+          <div class="timeline-marker"><div class="timeline-dot"></div></div>
+          <div class="timeline-content">
+            <strong>Model Training</strong>
+            <p>Encoder-only Transformer with bidirectional attention, multiple loss functions</p>
+          </div>
+        </li>
+        
+        <li class="timeline-item">
+          <div class="timeline-date-col"><span class="timeline-date">Phase 4</span></div>
+          <div class="timeline-marker"><div class="timeline-dot"></div></div>
+          <div class="timeline-content">
+            <strong>Paper Trading</strong>
+            <p>Threshold calibration, live paper trading via Rich dashboard or Textual TUI</p>
+          </div>
+        </li>
+        
+      </ul>
 
       
     </div>
@@ -1275,6 +1428,14 @@ document.addEventListener('keydown', function(e) {
   }
 });
 
+document.querySelector('.sidebar-nav').addEventListener('click', function(e) {
+  var link = e.target.closest('a[href^="#"]');
+  if (link) {
+    closeSidebar();
+    setActiveLink(link.getAttribute('href').slice(1));
+  }
+});
+
 function toggleTheme() {
   var html = document.documentElement;
   var current = html.getAttribute('data-theme');
@@ -1286,10 +1447,51 @@ function toggleTheme() {
   updateFavicon();
 }
 
+document.querySelectorAll('pre').forEach(function(pre) {
+  var wrapper = document.createElement('div');
+  wrapper.className = 'code-block-wrapper';
+  pre.parentNode.insertBefore(wrapper, pre);
+  wrapper.appendChild(pre);
+  var btn = document.createElement('button');
+  btn.className = 'copy-btn';
+  btn.setAttribute('aria-label', 'Copy code');
+  btn.innerHTML = '<span class="material-symbols-outlined" aria-hidden="true">content_copy</span>';
+  btn.addEventListener('click', function() {
+    var codeNode = pre.querySelector('code');
+    var text = codeNode ? codeNode.textContent : pre.textContent;
+    navigator.clipboard.writeText(text).then(function() {
+      btn.innerHTML = '<span class="material-symbols-outlined" aria-hidden="true">check</span>';
+      btn.setAttribute('aria-label', 'Copied');
+      setTimeout(function() {
+        btn.innerHTML = '<span class="material-symbols-outlined" aria-hidden="true">content_copy</span>';
+        btn.setAttribute('aria-label', 'Copy code');
+      }, 2000);
+    }).catch(function() {
+      btn.innerHTML = '<span class="material-symbols-outlined" aria-hidden="true">close</span>';
+      btn.setAttribute('aria-label', 'Copy failed');
+      setTimeout(function() {
+        btn.innerHTML = '<span class="material-symbols-outlined" aria-hidden="true">content_copy</span>';
+        btn.setAttribute('aria-label', 'Copy code');
+      }, 2000);
+    });
+  });
+  wrapper.appendChild(btn);
+});
+
 function updateFavicon() {
   var logo = document.querySelector('.sidebar-brand .logo');
   if (!logo) return;
-  var svg = logo.querySelector('svg').cloneNode(true);
+  var svgEl = logo.querySelector('svg');
+  if (!svgEl) return;
+  var svg = svgEl.cloneNode(true);
+  ['fill', 'stroke'].forEach(function(attr) {
+    var val = svg.getAttribute(attr);
+    if (val && val.startsWith('var(--')) {
+      var name = val.slice(4, -1);
+      var resolved = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+      if (resolved) svg.setAttribute(attr, resolved);
+    }
+  });
   var walker = document.createTreeWalker(svg, NodeFilter.SHOW_ELEMENT);
   while (walker.nextNode()) {
     var el = walker.currentNode;
@@ -1310,7 +1512,7 @@ function updateFavicon() {
 updateFavicon();
 
 if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-  var observer = new IntersectionObserver(function(entries) {
+  var revealObserver = new IntersectionObserver(function(entries) {
     entries.forEach(function(entry) {
       if (entry.isIntersecting) {
         entry.target.classList.add('visible');
@@ -1319,8 +1521,48 @@ if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
   }, { threshold: 0.1 });
 
   document.querySelectorAll('.reveal').forEach(function(el) {
-    observer.observe(el);
+    revealObserver.observe(el);
   });
+}
+
+var sections = document.querySelectorAll('section[id]');
+var navLinks = document.querySelectorAll('.sidebar-nav a');
+var activeId = null;
+
+function setActiveLink(id) {
+  if (id === activeId) return;
+  activeId = id;
+  navLinks.forEach(function(link) {
+    link.classList.toggle('active', link.getAttribute('href') === '#' + id);
+  });
+}
+
+// Track all sections' visibility so overlapping/tall sections don't break scroll-spy.
+// IntersectionObserver callbacks only report entries whose status *changed*, so we
+// maintain a full Map and recalculate the topmost visible section on every event.
+var visibleSections = new Map();
+var sectionObserver = new IntersectionObserver(function(entries) {
+  entries.forEach(function(entry) {
+    visibleSections.set(entry.target, entry.isIntersecting);
+  });
+  var best = null;
+  visibleSections.forEach(function(isVisible, el) {
+    if (isVisible) {
+      if (!best || el.getBoundingClientRect().top < best.getBoundingClientRect().top) {
+        best = el;
+      }
+    }
+  });
+  if (best) {
+    setActiveLink(best.getAttribute('id'));
+  }
+}, { threshold: 0, rootMargin: '-80px 0px -40% 0px' });
+
+sections.forEach(function(s) { sectionObserver.observe(s); });
+
+// Set initial active state on load (hero is at the top)
+if (sections.length > 0) {
+  setActiveLink(sections[0].getAttribute('id'));
 }
 </script>
 </body>

@@ -158,6 +158,32 @@ cells = ["Input features", "120 per stock (30 indicators × 4 windows)"]
 cells = ["Output", "tanh, scores in [-1, +1]"]
 
 [[sections]]
+id = "milestones"
+type = "timeline"
+title = "Milestones"
+icon = "rocket"
+
+[[sections.items]]
+title = "Data Collection"
+body = "OHLCV download for all S&P 500 stocks via yfinance, cached to CSV"
+date = "Phase 1"
+
+[[sections.items]]
+title = "Feature Engineering"
+body = "30 technical indicators at 4 lookback windows — 120 features per stock per day"
+date = "Phase 2"
+
+[[sections.items]]
+title = "Model Training"
+body = "Encoder-only Transformer with bidirectional attention, multiple loss functions"
+date = "Phase 3"
+
+[[sections.items]]
+title = "Paper Trading"
+body = "Threshold calibration, live paper trading via Rich dashboard or Textual TUI"
+date = "Phase 4"
+
+[[sections]]
 id = "how-it-works"
 type = "workflow"
 title = "How It Works"
@@ -264,7 +290,7 @@ torchrun --nproc_per_node=4 uv run python main.py --mode train
 id = "stack"
 type = "stack"
 title = "Tech Stack"
-icon = "layers"
+icon = "deploy"
 
 [[sections.items]]
 name = "PyTorch"
