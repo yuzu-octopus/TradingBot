@@ -23,6 +23,7 @@ jobs:
         with:
           repository: yuzu-octopus/ProjectSite
           path: generator
+          persist-credentials: false
       - name: Generate page
         run: |
           pip install jinja2
