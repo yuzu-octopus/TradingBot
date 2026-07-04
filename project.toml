@@ -161,7 +161,7 @@ cells = ["Output", "tanh, scores in [-1, +1]"]
 id = "milestones"
 type = "timeline"
 title = "Milestones"
-icon = "rocket"
+icon = "calendar"
 
 [[sections.items]]
 title = "Data Collection"
@@ -187,7 +187,7 @@ date = "Phase 4"
 id = "how-it-works"
 type = "workflow"
 title = "How It Works"
-icon = "layers"
+icon = "rocket"
 
 [[sections.items]]
 title = "Data"
@@ -290,7 +290,7 @@ torchrun --nproc_per_node=4 uv run python main.py --mode train
 id = "stack"
 type = "stack"
 title = "Tech Stack"
-icon = "deploy"
+icon = "layers"
 
 [[sections.items]]
 name = "PyTorch"
