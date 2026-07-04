@@ -369,7 +369,7 @@
       border: 1px solid var(--muted);
       border-radius: 8px;
       padding: 20px;
-      transition: transform 250ms cubic-bezier(0.4, 0, 0.2, 1), border-color 250ms cubic-bezier(0.4, 0, 0.2, 1);
+      transition: transform 250ms cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     .card:hover {
@@ -434,11 +434,10 @@
       border-radius: 8px;
       padding: 16px;
       margin: 8px 8px 0;
-      transition: transform 250ms cubic-bezier(0.4, 0, 0.2, 1), border-color 250ms cubic-bezier(0.4, 0, 0.2, 1);
+      transition: border-color 250ms cubic-bezier(0.4, 0, 0.2, 1);
     }
     .workflow-card:hover {
       border-color: var(--purple);
-      transform: translateY(-2px);
     }
     .workflow-card h4 {
       color: var(--purple);
@@ -857,18 +856,13 @@
       background: var(--panel);
       border: 1px solid var(--muted);
       color: var(--muted);
-      padding: 4px 6px;
+      padding: 4px 8px;
       border-radius: 6px;
+      font-size: 0.7rem;
+      font-family: var(--font);
       cursor: pointer;
       transition: all 250ms cubic-bezier(0.4, 0, 0.2, 1);
       z-index: 1;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      line-height: 1;
-    }
-    .code-block-wrapper .copy-btn .material-symbols-outlined {
-      font-size: 20px;
     }
     .code-block-wrapper .copy-btn:hover {
       color: var(--purple);
@@ -1432,7 +1426,8 @@ document.querySelector('.sidebar-nav').addEventListener('click', function(e) {
   var link = e.target.closest('a[href^="#"]');
   if (link) {
     closeSidebar();
-    setActiveLink(link.getAttribute('href').slice(1));
+    navLinks.forEach(function(l) { l.classList.remove('active'); });
+    link.classList.add('active');
   }
 });
 
@@ -1454,25 +1449,16 @@ document.querySelectorAll('pre').forEach(function(pre) {
   wrapper.appendChild(pre);
   var btn = document.createElement('button');
   btn.className = 'copy-btn';
-  btn.setAttribute('aria-label', 'Copy code');
-  btn.innerHTML = '<span class="material-symbols-outlined" aria-hidden="true">content_copy</span>';
+  btn.textContent = 'Copy';
   btn.addEventListener('click', function() {
     var codeNode = pre.querySelector('code');
     var text = codeNode ? codeNode.textContent : pre.textContent;
     navigator.clipboard.writeText(text).then(function() {
-      btn.innerHTML = '<span class="material-symbols-outlined" aria-hidden="true">check</span>';
-      btn.setAttribute('aria-label', 'Copied');
-      setTimeout(function() {
-        btn.innerHTML = '<span class="material-symbols-outlined" aria-hidden="true">content_copy</span>';
-        btn.setAttribute('aria-label', 'Copy code');
-      }, 2000);
+      btn.textContent = 'Copied!';
+      setTimeout(function() { btn.textContent = 'Copy'; }, 2000);
     }).catch(function() {
-      btn.innerHTML = '<span class="material-symbols-outlined" aria-hidden="true">close</span>';
-      btn.setAttribute('aria-label', 'Copy failed');
-      setTimeout(function() {
-        btn.innerHTML = '<span class="material-symbols-outlined" aria-hidden="true">content_copy</span>';
-        btn.setAttribute('aria-label', 'Copy code');
-      }, 2000);
+      btn.textContent = 'Failed';
+      setTimeout(function() { btn.textContent = 'Copy'; }, 2000);
     });
   });
   wrapper.appendChild(btn);
@@ -1528,15 +1514,6 @@ if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
 var sections = document.querySelectorAll('section[id]');
 var navLinks = document.querySelectorAll('.sidebar-nav a');
 var activeId = null;
-
-function setActiveLink(id) {
-  if (id === activeId) return;
-  activeId = id;
-  navLinks.forEach(function(link) {
-    link.classList.toggle('active', link.getAttribute('href') === '#' + id);
-  });
-}
-
 // Track all sections' visibility so overlapping/tall sections don't break scroll-spy.
 // IntersectionObserver callbacks only report entries whose status *changed*, so we
 // maintain a full Map and recalculate the topmost visible section on every event.
@@ -1554,16 +1531,17 @@ var sectionObserver = new IntersectionObserver(function(entries) {
     }
   });
   if (best) {
-    setActiveLink(best.getAttribute('id'));
+    var id = best.getAttribute('id');
+    if (id !== activeId) {
+      activeId = id;
+      navLinks.forEach(function(link) {
+        link.classList.toggle('active', link.getAttribute('href') === '#' + id);
+      });
+    }
   }
-}, { threshold: 0, rootMargin: '-80px 0px -40% 0px' });
+}, { threshold: 0.1, rootMargin: '-80px 0px -60% 0px' });
 
 sections.forEach(function(s) { sectionObserver.observe(s); });
-
-// Set initial active state on load (hero is at the top)
-if (sections.length > 0) {
-  setActiveLink(sections[0].getAttribute('id'));
-}
 </script>
 </body>
 </html>
