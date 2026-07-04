@@ -5,7 +5,6 @@ subtitle = "All S&P 500 stocks pass through a single encoder-only Transformer in
 description = "Multi-stock ML trading bot using an encoder-only Transformer with RankGLU output and market-guided gating. Learns inter-stock relationships across the S&P 500."
 github_url = "https://github.com/yuzu-octopus/TradingBot"
 page_url = "https://yuzu-octopus.github.io/TradingBot/"
-quickstart_url = "#quickstart"
 logo_svg = """
 <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
   <rect width="64" height="64" rx="14" fill="#44475a"/>
@@ -20,16 +19,6 @@ logo_svg = """
   <circle cx="38" cy="20" r="2.5" fill="#bd93f9"/>
   <circle cx="48" cy="26" r="2.5" fill="#bd93f9"/>
   <circle cx="56" cy="12" r="4" fill="#bd93f9"/>
-</svg>
-"""
-favicon_data = """
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <rect width="64" height="64" rx="12" fill="#282a36"/>
-  <line x1="16" y1="8" x2="16" y2="56" stroke="#6272a4" stroke-width="0.5" opacity="0.3"/>
-  <line x1="32" y1="8" x2="32" y2="56" stroke="#6272a4" stroke-width="0.5" opacity="0.3"/>
-  <line x1="48" y1="8" x2="48" y2="56" stroke="#6272a4" stroke-width="0.5" opacity="0.3"/>
-  <polyline points="8,44 20,30 32,36 44,18 56,24" fill="none" stroke="#50fa7b" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-  <circle cx="56" cy="24" r="4" fill="#bd93f9"/>
 </svg>
 """
 
