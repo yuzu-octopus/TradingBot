@@ -6,6 +6,7 @@
   <title>TradingBot | Multi-stock ML trading bot</title>
   <meta name="description" content="Multi-stock ML trading bot using an encoder-only Transformer with RankGLU output and market-guided gating. Learns inter-stock relationships across the S&P 500.">
   <meta name="theme-color" content="#282a36">
+  <meta name="color-scheme" content="dark light">
   <meta property="og:type" content="website">
   <meta property="og:title" content="TradingBot | Multi-stock ML trading bot">
   <meta property="og:description" content="Multi-stock ML trading bot using an encoder-only Transformer with RankGLU output and market-guided gating. Learns inter-stock relationships across the S&P 500.">
@@ -15,12 +16,40 @@
   <meta name="twitter:title" content="TradingBot | Multi-stock ML trading bot">
   <meta name="twitter:description" content="Multi-stock ML trading bot using an encoder-only Transformer with RankGLU output and market-guided gating. Learns inter-stock relationships across the S&P 500.">
   
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2064%2064%22%3E%0A%20%20%3Crect%20width%3D%2264%22%20height%3D%2264%22%20rx%3D%2212%22%20fill%3D%22%23282a36%22/%3E%0A%20%20%3Cline%20x1%3D%2216%22%20y1%3D%228%22%20x2%3D%2216%22%20y2%3D%2256%22%20stroke%3D%22%236272a4%22%20stroke-width%3D%220.5%22%20opacity%3D%220.3%22/%3E%0A%20%20%3Cline%20x1%3D%2232%22%20y1%3D%228%22%20x2%3D%2232%22%20y2%3D%2256%22%20stroke%3D%22%236272a4%22%20stroke-width%3D%220.5%22%20opacity%3D%220.3%22/%3E%0A%20%20%3Cline%20x1%3D%2248%22%20y1%3D%228%22%20x2%3D%2248%22%20y2%3D%2256%22%20stroke%3D%22%236272a4%22%20stroke-width%3D%220.5%22%20opacity%3D%220.3%22/%3E%0A%20%20%3Cpolyline%20points%3D%228%2C44%2020%2C30%2032%2C36%2044%2C18%2056%2C24%22%20fill%3D%22none%22%20stroke%3D%22%2350fa7b%22%20stroke-width%3D%224%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22/%3E%0A%20%20%3Ccircle%20cx%3D%2256%22%20cy%3D%2224%22%20r%3D%224%22%20fill%3D%22%23bd93f9%22/%3E%0A%3C/svg%3E%0A">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2064%2064%27%3E%3Crect%20width%3D%2764%27%20height%3D%2764%27%20rx%3D%2714%27%20fill%3D%27%2344475a%27/%3E%3Crect%20x%3D%2714%27%20y%3D%2716%27%20width%3D%2736%27%20height%3D%2732%27%20rx%3D%274%27%20fill%3D%27none%27%20stroke%3D%27%2350fa7b%27%20stroke-width%3D%272.5%27/%3E%3Cpath%20d%3D%27M24%2026h16%27%20stroke%3D%27%23bd93f9%27%20stroke-width%3D%272%27%20stroke-linecap%3D%27round%27/%3E%3Cpath%20d%3D%27M24%2032h12%27%20stroke%3D%27%236272a4%27%20stroke-width%3D%272%27%20stroke-linecap%3D%27round%27/%3E%3Cpath%20d%3D%27M24%2038h8%27%20stroke%3D%27%236272a4%27%20stroke-width%3D%272%27%20stroke-linecap%3D%27round%27/%3E%3Ccircle%20cx%3D%2748%27%20cy%3D%2716%27%20r%3D%279%27%20fill%3D%27%23bd93f9%27/%3E%3Cpath%20d%3D%27M45%2016h6M48%2013v6%27%20stroke%3D%27%23282a36%27%20stroke-width%3D%272%27%20stroke-linecap%3D%27round%27/%3E%3C/svg%3E" id="favicon">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-markup.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-css.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-toml.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-yaml.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-typescript.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-rust.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-go.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-c.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-cpp.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-java.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-swift.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-kotlin.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-docker.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-markdown.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-diff.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-sql.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-lua.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-ruby.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-powershell.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-shell-session.min.js" defer></script>
   <style>
     :root {
+      color-scheme: dark;
       --bg: #282a36;
       --panel: #44475a;
       --fg: #f8f8f2;
@@ -33,6 +62,21 @@
       --red: #ff5555;
       --yellow: #f1fa8c;
       --font: 'JetBrains Mono', monospace;
+    }
+
+    [data-theme="light"] {
+      color-scheme: light;
+      --bg: #FFFBEB;
+      --panel: #E2DECA;
+      --fg: #1F1F1F;
+      --muted: #6C664B;
+      --purple: #644AC9;
+      --pink: #A3144D;
+      --cyan: #0891C2;
+      --green: #14710A;
+      --orange: #A34D14;
+      --red: #CB3A2A;
+      --yellow: #846E15;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -56,16 +100,57 @@
       line-height: 1.5;
     }
 
-    a { color: var(--cyan); text-decoration: none; }
-    a:hover { color: var(--pink); }
+    a { text-decoration: none; }
+    .main a:not(.btn):not(.link-card) { color: var(--cyan); }
+    .main a:not(.btn):not(.link-card):hover { color: var(--pink); }
+    .sidebar-footer a { color: var(--purple); }
+    .sidebar-footer a:hover { color: var(--pink); }
+    ::selection { background: var(--purple); color: var(--bg); }
+
     a:focus-visible,
     .btn:focus-visible,
-    .mobile-toggle:focus-visible {
-      outline: 2px solid var(--pink);
+    .mobile-toggle:focus-visible,
+    .theme-toggle:focus-visible {
+      outline: 2px solid var(--purple);
       outline-offset: 2px;
     }
 
-    h1, h2, h3, h4 { font-weight: 700; }
+    h1, h2, h3, h4 { font-weight: 700; text-wrap: balance; }
+    strong { color: var(--purple); }
+    em { color: var(--cyan); font-style: italic; }
+    blockquote {
+      border-left: 3px solid var(--purple);
+      padding: 8px 16px;
+      margin: 12px 0;
+      background: color-mix(in srgb, var(--panel) 50%, transparent);
+      border-radius: 0 8px 8px 0;
+      color: var(--muted);
+    }
+    blockquote p { color: var(--fg); }
+    figure {
+      margin: 12px 0;
+      text-align: center;
+    }
+    figure img {
+      max-width: 100%;
+      border-radius: 8px;
+    }
+    figcaption {
+      margin-top: 8px;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+    details {
+      border: 1px solid var(--muted);
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin: 12px 0;
+    }
+    details summary {
+      cursor: pointer;
+      color: var(--purple);
+      font-weight: 600;
+    }
 
     .sidebar {
       position: fixed;
@@ -81,7 +166,7 @@
 
     .sidebar-brand {
       text-align: center;
-      padding: 16px;
+      padding: 16px 16px 8px;
     }
 
     .sidebar-brand .logo {
@@ -120,6 +205,7 @@
 
     .sidebar-nav {
       flex: 1;
+      padding-top: 20px;
     }
 
     .sidebar-nav ul {
@@ -133,31 +219,39 @@
     .sidebar-nav a {
       display: flex;
       align-items: center;
-      gap: 0;
-      padding: 8px 0;
-      min-height: 48px;
-      color: var(--fg);
-      font-size: 1rem;
-      transition: background 250ms cubic-bezier(0.4, 0, 0.2, 1);
+      padding: 8px 12px;
+      min-height: 40px;
+      color: var(--muted);
+      font-size: 0.9rem;
+      transition: all 250ms cubic-bezier(0.4, 0, 0.2, 1);
       text-decoration: none;
+      border-radius: 8px;
+      margin: 2px 8px;
     }
 
     .sidebar-nav a:hover {
-      background: rgba(255, 255, 255, 0.08);
+      background: color-mix(in srgb, var(--fg) 8%, transparent);
+      color: var(--fg);
     }
 
     .sidebar-nav a .icon {
-      width: 56px;
-      min-width: 56px;
+      width: 40px;
+      min-width: 40px;
       display: flex;
       align-items: center;
       justify-content: center;
     }
 
-    .sidebar-nav a .icon svg {
-      width: 24px;
-      height: 24px;
-      flex-shrink: 0;
+    .sidebar-nav a .icon .material-symbols-outlined {
+      font-size: 24px;
+    }
+
+    .theme-toggle .material-symbols-outlined {
+      font-size: 24px;
+    }
+
+    .mobile-toggle .material-symbols-outlined {
+      font-size: 24px;
     }
 
     .sidebar-footer {
@@ -192,7 +286,7 @@
       color: var(--purple);
       border-bottom: 2px solid var(--purple);
       padding-bottom: 8px;
-      font-size: 1.6rem;
+      font-size: clamp(1.2rem, 2vw + 0.8rem, 1.6rem);
       margin-bottom: 24px;
     }
 
@@ -202,7 +296,7 @@
     }
 
     .hero h1 {
-      font-size: 3rem;
+      font-size: clamp(1.8rem, 4vw + 1rem, 3rem);
       color: var(--purple);
       margin-bottom: 12px;
     }
@@ -232,8 +326,13 @@
       padding: 8px 16px;
       font-size: 0.8rem;
       border: 1px solid var(--muted);
-      border-radius: 4px;
+      border-radius: 8px;
       transition: all 0.2s;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     }
 
     .btn-primary {
@@ -243,19 +342,9 @@
     }
 
     .btn-primary:hover {
-      background: var(--pink);
-      border-color: var(--pink);
-      color: var(--fg);
-    }
-
-    .btn-outline {
-      color: var(--cyan);
-      border-color: var(--cyan);
-    }
-
-    .btn-outline:hover {
-      color: var(--pink);
-      border-color: var(--pink);
+      background: transparent;
+      color: var(--purple);
+      border-color: var(--purple);
     }
 
     .grid {
@@ -269,13 +358,14 @@
       border: 1px solid var(--muted);
       border-radius: 8px;
       padding: 20px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-      transition: border-color 0.2s, box-shadow 0.2s;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+      transition: transform 0.25s, box-shadow 0.25s;
     }
 
     .card:hover {
       border-color: var(--purple);
-      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.15);
     }
 
     .card h3 {
@@ -291,7 +381,8 @@
 
     table {
       width: 100%;
-      border-collapse: collapse;
+      border-collapse: separate;
+      border-spacing: 0;
       background: var(--panel);
       border: 1px solid var(--muted);
       border-radius: 8px;
@@ -313,15 +404,12 @@
 
     tr:last-child td { border-bottom: none; }
 
-    tr:hover td { background: rgba(255, 255, 255, 0.05); }
-
-    .status-comfortable { color: var(--green); }
-    .status-tight { color: var(--orange); }
+    tr:hover td { background: color-mix(in srgb, var(--fg) 5%, transparent); }
 
     pre {
       background: var(--bg);
       border: 1px solid var(--muted);
-      border-radius: 6px;
+      border-radius: 8px;
       padding: 16px;
       overflow-x: auto;
     }
@@ -337,13 +425,65 @@
       color: var(--green);
       background: var(--panel);
       padding: 1px 6px;
-      border-radius: 3px;
+      border-radius: 8px;
       font-size: 0.8em;
     }
 
     pre code {
       background: transparent;
       padding: 0;
+    }
+
+    /* Prism.js Dracula theme override — every token type */
+    pre[class*="language-"] { background: var(--bg); border: 1px solid var(--muted); border-radius: 8px; padding: 16px; margin: 0; font-family: var(--font); font-size: 0.8rem; line-height: 1.6; }
+    code[class*="language-"] { text-shadow: none; font-family: var(--font); font-size: 0.8rem; background: none; padding: 0; color: var(--fg); }
+    .token.comment, .token.prolog, .token.cdata, .token.doctype { color: var(--muted); }
+    .token.punctuation { color: var(--fg); }
+    .token.namespace { opacity: 0.8; }
+    .token.keyword, .token.operator { color: var(--pink); }
+    .token.string, .token.attr-value, .token.regex { color: var(--yellow); }
+    .token.function, .token.attr-name { color: var(--green); }
+    .token.number, .token.boolean, .token.constant, .token.parameter, .token.variable { color: var(--orange); }
+    .token.class-name, .token.builtin, .token.property, .token.url, .token.symbol { color: var(--cyan); }
+    .token.tag, .token.selector, .token.entity, .token.atrule { color: var(--pink); }
+    .token.decorator { color: var(--purple); }
+    .token.important, .token.bold { font-weight: 700; }
+    .token.italic { font-style: italic; }
+    .token.output { color: var(--fg); }
+    .token.deleted { color: var(--red); }
+    .token.inserted { color: var(--green); }
+    .token.shell-symbol { color: var(--green); }
+    .token.title { color: var(--purple); }
+
+    /* Utility classes for custom HTML sections */
+    .callout {
+      padding: 12px 16px;
+      border-radius: 8px;
+      border-left: 4px solid var(--muted);
+      background: color-mix(in srgb, var(--panel) 50%, transparent);
+      margin: 12px 0;
+      font-size: 0.85rem;
+    }
+    .callout-info { border-left-color: var(--cyan); }
+    .callout-warning { border-left-color: var(--orange); }
+    .callout-success { border-left-color: var(--green); }
+    .callout-error { border-left-color: var(--red); }
+
+    .kbd {
+      display: inline-block;
+      padding: 2px 6px;
+      font-size: 0.75rem;
+      font-family: var(--font);
+      background: var(--panel);
+      border: 1px solid var(--muted);
+      border-radius: 8px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    }
+
+    .divider {
+      border: none;
+      border-top: 1px solid var(--muted);
+      margin: 24px 0;
     }
 
     .steps {
@@ -361,22 +501,6 @@
     .steps li:last-child { border-bottom: none; }
 
     .steps li strong { color: var(--purple); }
-
-    .stats {
-      list-style: none;
-      padding: 0;
-    }
-
-    .stats li {
-      padding: 8px 0;
-      border-bottom: 1px solid var(--muted);
-      color: var(--fg);
-      font-size: 0.85rem;
-    }
-
-    .stats li:last-child { border-bottom: none; }
-
-    .stats li strong { color: var(--purple); }
 
     .terms {
       list-style: none;
@@ -406,20 +530,115 @@
       background: var(--panel);
       border: 1px solid var(--muted);
       padding: 6px 12px;
-      border-radius: 4px;
+      border-radius: 8px;
       font-size: 0.75rem;
       color: var(--fg);
+      transition: all 0.25s;
     }
 
     .stack .badge strong { color: var(--purple); }
 
+    .stack .badge:hover {
+      border-color: var(--purple);
+      transform: translateY(-1px);
+    }
+
     ::-webkit-scrollbar { width: 8px; height: 8px; }
     ::-webkit-scrollbar-track { background: var(--bg); }
-    ::-webkit-scrollbar-thumb { background: var(--panel); border-radius: 4px; }
-    ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+    ::-webkit-scrollbar-thumb { background: var(--muted); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--purple); }
 
     .skip-link { position: absolute; left: -9999px; }
     .skip-link:focus { left: 8px; top: 8px; background: var(--purple); color: var(--bg); padding: 8px 12px; z-index: 1300; }
+
+    .theme-toggle {
+      position: fixed;
+      top: 12px;
+      right: 12px;
+      z-index: 1200;
+      background: var(--panel);
+      border: 1px solid var(--muted);
+      color: var(--fg);
+      padding: 10px 12px;
+      min-width: 44px;
+      min-height: 44px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 250ms cubic-bezier(0.4, 0, 0.2, 1), border-color 250ms;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .theme-toggle:hover {
+      border-color: var(--purple);
+      color: var(--purple);
+      transform: translateY(-1px);
+    }
+
+    .theme-toggle .icon-moon { display: block; }
+    .theme-toggle .icon-sun { display: none; }
+    [data-theme="light"] .theme-toggle .icon-moon { display: none; }
+    [data-theme="light"] .theme-toggle .icon-sun { display: block; }
+
+    .reveal {
+      opacity: 0;
+      transform: translateY(24px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .reveal {
+        opacity: 1;
+        transform: none;
+      }
+    }
+
+    .links {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .link-card {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      border: 1px solid var(--muted);
+      border-radius: 8px;
+      text-decoration: none;
+      color: var(--fg);
+      transition: all 0.25s;
+    }
+
+    .link-card:hover {
+      border-color: var(--purple);
+      background: color-mix(in srgb, var(--fg) 3%, transparent);
+    }
+
+    .link-card strong { color: var(--cyan); flex-shrink: 0; }
+
+    .link-card span:nth-child(2) {
+      color: var(--muted);
+      font-size: 0.85rem;
+      flex: 1;
+    }
+
+    .link-arrow {
+      color: var(--muted);
+      transition: transform 0.25s;
+    }
+
+    .link-card:hover .link-arrow {
+      transform: translateX(4px);
+      color: var(--purple);
+    }
 
     .mobile-toggle {
       display: none;
@@ -433,7 +652,7 @@
       padding: 10px 12px;
       min-width: 44px;
       min-height: 44px;
-      border-radius: 6px;
+      border-radius: 8px;
       cursor: pointer;
       transition: background 250ms cubic-bezier(0.4, 0, 0.2, 1);
     }
@@ -458,14 +677,27 @@
       .sidebar-overlay.open { display: block; }
     }
   </style>
+  <script>
+  (function() {
+    var saved = localStorage.getItem('theme');
+    if (saved) {
+      document.documentElement.setAttribute('data-theme', saved);
+    }
+  })();
+  </script>
 </head>
 <body>
 
 
 
-<button class="mobile-toggle" id="mobile-toggle" onclick="toggleSidebar()" aria-label="Toggle mobile menu" aria-controls="sidebar" aria-expanded="false">&#9776;</button>
+<button class="mobile-toggle" id="mobile-toggle" onclick="toggleSidebar()" aria-label="Toggle mobile menu" aria-controls="sidebar" aria-expanded="false"><span class="material-symbols-outlined" aria-hidden="true">menu</span></button>
 <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
 <a class="skip-link" href="#main-content">Skip to content</a>
+
+<button class="theme-toggle" id="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
+  <span class="material-symbols-outlined icon-moon" aria-hidden="true">dark_mode</span>
+  <span class="material-symbols-outlined icon-sun" aria-hidden="true">light_mode</span>
+</button>
 
 <aside class="sidebar" id="sidebar">
   <div class="sidebar-brand">
@@ -492,50 +724,42 @@
     <ul>
       <li><a href="#hero"><span class="icon">
 
-<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3 12l9-9 9 9"/><path d="M5 10v9a1 1 0 0 0 1 1h3v-5h6v5h3a1 1 0 0 0 1-1v-9"/></svg>
-
+<span class="material-symbols-outlined icon-home" aria-hidden="true">home</span>
 </span> Home</a></li>
       
       <li><a href="#features"><span class="icon">
 
-<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
-
+<span class="material-symbols-outlined icon-grid" aria-hidden="true">grid_view</span>
 </span> Features</a></li>
       
       <li><a href="#cli"><span class="icon">
 
-<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="M12 4v3M12 17v3M4 12h3M17 12h3"/></svg>
-
+<span class="material-symbols-outlined icon-gear" aria-hidden="true">settings</span>
 </span> CLI Reference</a></li>
       
       <li><a href="#architecture"><span class="icon">
 
-<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="5" y="5" width="14" height="14" rx="2"/><rect x="8" y="8" width="8" height="8" rx="1"/><path d="M5 10H3"/><path d="M5 14H3"/><path d="M21 10h-2"/><path d="M21 14h-2"/><path d="M10 3v2"/><path d="M14 3v2"/><path d="M10 19v2"/><path d="M14 19v2"/></svg>
-
+<span class="material-symbols-outlined icon-chip" aria-hidden="true">memory</span>
 </span> Model Architecture</a></li>
       
       <li><a href="#how-it-works"><span class="icon">
 
-<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><polygon points="12 2 22 8.5 12 15 2 8.5"/><polyline points="2 15.5 12 22 22 15.5"/><polyline points="2 11.5 12 18 22 11.5"/></svg>
-
+<span class="material-symbols-outlined icon-layers" aria-hidden="true">layers</span>
 </span> How It Works</a></li>
       
       <li><a href="#terms"><span class="icon">
 
-<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg>
-
+<span class="material-symbols-outlined icon-document" aria-hidden="true">description</span>
 </span> Terminology</a></li>
       
       <li><a href="#quickstart"><span class="icon">
 
-<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><polygon points="6 3 20 12 6 21"/></svg>
-
+<span class="material-symbols-outlined icon-play" aria-hidden="true">play_arrow</span>
 </span> Quick Start</a></li>
       
       <li><a href="#stack"><span class="icon">
 
-<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><polygon points="12 2 22 8.5 12 15 2 8.5"/><polyline points="2 15.5 12 22 22 15.5"/><polyline points="2 11.5 12 18 22 11.5"/></svg>
-
+<span class="material-symbols-outlined icon-layers" aria-hidden="true">layers</span>
 </span> Tech Stack</a></li>
       
     </ul>
@@ -557,17 +781,16 @@
       <p class="subtitle">All S&P 500 stocks pass through a single encoder-only Transformer in one forward pass. Learns inter-stock relationships — outputs per-stock buy/sell confidence scores from -1 to +1.</p>
       <div class="cta">
         <a href="https://github.com/yuzu-octopus/TradingBot" class="btn btn-primary">View on GitHub</a>
-        
-        <a href="#quickstart" class="btn btn-outline">Quick Start</a>
-        
       </div>
     </div>
   </section>
 
   
-  <section id="features">
+  <section id="features" class="reveal">
     <div class="container">
+      
       <h2>Features</h2>
+      
 
       
       <div class="grid">
@@ -598,9 +821,11 @@
     </div>
   </section>
   
-  <section id="cli">
+  <section id="cli" class="reveal">
     <div class="container">
+      
       <h2>CLI Reference</h2>
+      
 
       
       <div style="overflow-x: auto;">
@@ -660,9 +885,11 @@
     </div>
   </section>
   
-  <section id="architecture">
+  <section id="architecture" class="reveal">
     <div class="container">
+      
       <h2>Model Architecture</h2>
+      
 
       
       <div style="overflow-x: auto;">
@@ -702,9 +929,11 @@
     </div>
   </section>
   
-  <section id="how-it-works">
+  <section id="how-it-works" class="reveal">
     <div class="container">
+      
       <h2>How It Works</h2>
+      
 
       
       <ul class="steps">
@@ -725,9 +954,11 @@
     </div>
   </section>
   
-  <section id="terms">
+  <section id="terms" class="reveal">
     <div class="container">
+      
       <h2>Terminology</h2>
+      
 
       
       <ul class="terms">
@@ -754,10 +985,13 @@
     </div>
   </section>
   
-  <section id="quickstart">
+  <section id="quickstart" class="reveal">
     <div class="container">
+      
       <h2>Quick Start</h2>
+      
 
+      
       
       <pre><code># 1. Install dependencies
 uv sync
@@ -789,14 +1023,17 @@ uv run python trade.py --interval 15 --asset-class crypto
 # 10. Multi-GPU training
 torchrun --nproc_per_node=N uv run python main.py --mode train
 </code></pre>
+      
 
       
     </div>
   </section>
   
-  <section id="stack">
+  <section id="stack" class="reveal">
     <div class="container">
+      
       <h2>Tech Stack</h2>
+      
 
       
       <div class="stack">
@@ -847,6 +1084,54 @@ document.addEventListener('keydown', function(e) {
     closeSidebar();
   }
 });
+
+function toggleTheme() {
+  var html = document.documentElement;
+  var current = html.getAttribute('data-theme');
+  var next = current === 'light' ? 'dark' : 'light';
+  html.setAttribute('data-theme', next);
+  localStorage.setItem('theme', next);
+  document.querySelector('meta[name="theme-color"]').content =
+    next === 'light' ? '#FFFBEB' : '#282a36';
+  updateFavicon();
+}
+
+function updateFavicon() {
+  var logo = document.querySelector('.sidebar-brand .logo');
+  if (!logo) return;
+  var svg = logo.querySelector('svg').cloneNode(true);
+  var walker = document.createTreeWalker(svg, NodeFilter.SHOW_ELEMENT);
+  while (walker.nextNode()) {
+    var el = walker.currentNode;
+    ['fill', 'stroke'].forEach(function(attr) {
+      var val = el.getAttribute(attr);
+      if (val && val.startsWith('var(--')) {
+        var name = val.slice(4, -1);
+        var resolved = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+        if (resolved) el.setAttribute(attr, resolved);
+      }
+    });
+  }
+  var svgData = new XMLSerializer().serializeToString(svg);
+  document.getElementById('favicon').href =
+    'data:image/svg+xml,' + encodeURIComponent(svgData);
+}
+
+updateFavicon();
+
+if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+  var observer = new IntersectionObserver(function(entries) {
+    entries.forEach(function(entry) {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+      }
+    });
+  }, { threshold: 0.1 });
+
+  document.querySelectorAll('.reveal').forEach(function(el) {
+    observer.observe(el);
+  });
+}
 </script>
 </body>
 </html>
