@@ -7,18 +7,18 @@ github_url = "https://github.com/yuzu-octopus/TradingBot"
 page_url = "https://yuzu-octopus.github.io/TradingBot/"
 logo_svg = """
 <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
-  <rect width="64" height="64" rx="14" fill="#44475a"/>
-  <line x1="12" y1="8" x2="12" y2="56" stroke="#6272a4" stroke-width="0.5" opacity="0.35"/>
-  <line x1="24" y1="8" x2="24" y2="56" stroke="#6272a4" stroke-width="0.5" opacity="0.35"/>
-  <line x1="36" y1="8" x2="36" y2="56" stroke="#6272a4" stroke-width="0.5" opacity="0.35"/>
-  <line x1="48" y1="8" x2="48" y2="56" stroke="#6272a4" stroke-width="0.5" opacity="0.35"/>
-  <polyline points="8,48 18,34 28,40 38,20 48,26 56,12" fill="none" stroke="#50fa7b" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-  <circle cx="8" cy="48" r="2.5" fill="#bd93f9"/>
-  <circle cx="18" cy="34" r="2.5" fill="#bd93f9"/>
-  <circle cx="28" cy="40" r="2.5" fill="#bd93f9"/>
-  <circle cx="38" cy="20" r="2.5" fill="#bd93f9"/>
-  <circle cx="48" cy="26" r="2.5" fill="#bd93f9"/>
-  <circle cx="56" cy="12" r="4" fill="#bd93f9"/>
+  <rect width="64" height="64" rx="14" fill="var(--panel)"/>
+  <line x1="12" y1="8" x2="12" y2="56" stroke="var(--muted)" stroke-width="0.5" opacity="0.35"/>
+  <line x1="24" y1="8" x2="24" y2="56" stroke="var(--muted)" stroke-width="0.5" opacity="0.35"/>
+  <line x1="36" y1="8" x2="36" y2="56" stroke="var(--muted)" stroke-width="0.5" opacity="0.35"/>
+  <line x1="48" y1="8" x2="48" y2="56" stroke="var(--muted)" stroke-width="0.5" opacity="0.35"/>
+  <polyline points="8,48 18,34 28,40 38,20 48,26 56,12" fill="none" stroke="var(--green)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="8" cy="48" r="2.5" fill="var(--purple)"/>
+  <circle cx="18" cy="34" r="2.5" fill="var(--purple)"/>
+  <circle cx="28" cy="40" r="2.5" fill="var(--purple)"/>
+  <circle cx="38" cy="20" r="2.5" fill="var(--purple)"/>
+  <circle cx="48" cy="26" r="2.5" fill="var(--purple)"/>
+  <circle cx="56" cy="12" r="4" fill="var(--purple)"/>
 </svg>
 """
 
@@ -226,6 +226,7 @@ id = "quickstart"
 type = "code_block"
 title = "Quick Start"
 icon = "play"
+language = "bash"
 code = """
 # 1. Install dependencies
 uv sync
