@@ -298,23 +298,3 @@ description = "progress bars"
 name = "uv"
 description = "Python package manager"
 
-[[sections]]
-id = "links"
-type = "links"
-title = "Resources"
-icon = "link"
-
-[[sections.items]]
-title = "yfinance"
-url = "https://pypi.org/project/yfinance/"
-description = "Yahoo Finance market data downloader"
-
-[[sections.items]]
-title = "PyTorch"
-url = "https://pytorch.org/"
-description = "Deep learning framework used for the Transformer"
-
-[[sections.items]]
-title = "ProjectSite"
-url = "https://github.com/yuzu-octopus/ProjectSite"
-description = "The page generator used to build this site"
