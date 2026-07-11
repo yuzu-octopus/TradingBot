@@ -166,7 +166,6 @@
       border-right: 1px solid var(--muted);
       display: flex;
       flex-direction: column;
-      overflow-y: auto;
       z-index: 1200;
     }
 
@@ -211,6 +210,7 @@
 
     .sidebar-nav {
       flex: 1;
+      overflow-y: auto;
       padding-top: 20px;
     }
 
@@ -285,7 +285,7 @@
     }
 
     section {
-      padding: 48px 40px;
+      padding: clamp(32px, 5vw, 48px) clamp(16px, 4vw, 40px);
     }
 
     .container {
@@ -578,7 +578,7 @@
 
     .timeline {
       list-style: none;
-      padding: 0 0 0 100px;
+      padding: 0;
     }
     .timeline-item {
       display: flex;
@@ -588,7 +588,7 @@
     .timeline-item::before {
       content: '';
       position: absolute;
-      left: 79px;
+      left: 80px;
       top: 0;
       bottom: 0;
       width: 2px;
@@ -641,7 +641,6 @@
     }
     .timeline-content strong {
       color: var(--purple);
-      line-height: 16px;
       display: inline-block;
     }
     .timeline-content p { margin-top: 4px; }
@@ -834,6 +833,30 @@
         transition: transform 250ms cubic-bezier(0.4, 0, 0.2, 1), visibility 0s 0s;
       }
       .sidebar-overlay.open { display: block; }
+
+      .hero { padding: 60px 16px 32px; }
+      .hero h1 { font-size: clamp(1.4rem, 6vw, 2rem); }
+
+      .timeline { padding: 0; }
+      .timeline-date-col { width: auto; text-align: left; padding-right: 8px; }
+      .timeline-item::before { left: 60px; }
+      .timeline-marker { width: 16px; }
+      .timeline-content { padding-left: 8px; }
+
+      .link-card { flex-direction: column; align-items: flex-start; gap: 4px; }
+      .link-card .link-arrow { align-self: flex-end; }
+
+      .workflow { padding: 8px 0; }
+      .workflow-item { flex: 0 0 220px; }
+
+      .stack { gap: 6px; }
+      .stack .badge { padding: 4px 8px; font-size: 0.7rem; }
+
+      .grid { grid-template-columns: 1fr; }
+
+      pre { max-width: 100%; overflow-x: auto; }
+      table { display: block; overflow-x: auto; }
+      .timeline-date { font-size: 0.65rem; white-space: nowrap; }
     }
 
     @media print {
@@ -1368,11 +1391,15 @@ document.addEventListener('keydown', function(e) {
   }
 });
 
+var scrollingProgrammatically = false;
+
 document.querySelector('.sidebar-nav').addEventListener('click', function(e) {
   var link = e.target.closest('a[href^="#"]');
   if (link) {
     closeSidebar();
     setActiveLink(link.getAttribute('href').slice(1));
+    scrollingProgrammatically = true;
+    setTimeout(function() { scrollingProgrammatically = false; }, 800);
   }
 });
 
@@ -1477,33 +1504,35 @@ function setActiveLink(id) {
   });
 }
 
-// Track all sections' visibility so overlapping/tall sections don't break scroll-spy.
-// IntersectionObserver callbacks only report entries whose status *changed*, so we
-// maintain a full Map and recalculate the topmost visible section on every event.
-var visibleSections = new Map();
-var sectionObserver = new IntersectionObserver(function(entries) {
-  entries.forEach(function(entry) {
-    visibleSections.set(entry.target, entry.isIntersecting);
-  });
+// Viewport-intersection spy: find the section whose range overlaps the top
+// 30% of the viewport. Picks the one closest to the midpoint. Works for
+// small sections that the old offsetTop approach skipped during fast scrolling.
+function onScroll() {
+  if (scrollingProgrammatically) return;
+  var viewportTop = window.scrollY;
+  var viewportMid = viewportTop + window.innerHeight * 0.3;
   var best = null;
-  visibleSections.forEach(function(isVisible, el) {
-    if (isVisible) {
-      if (!best || el.getBoundingClientRect().top < best.getBoundingClientRect().top) {
-        best = el;
+  var bestDist = Infinity;
+  for (var i = 0; i < sections.length; i++) {
+    var rect = sections[i].getBoundingClientRect();
+    var sectionTop = rect.top + viewportTop;
+    var sectionBottom = sectionTop + rect.height;
+    if (sectionTop <= viewportMid && sectionBottom >= viewportTop) {
+      var dist = Math.abs(sectionTop - viewportMid);
+      if (dist < bestDist) {
+        bestDist = dist;
+        best = sections[i];
       }
     }
-  });
-  if (best) {
-    setActiveLink(best.getAttribute('id'));
   }
-}, { threshold: 0, rootMargin: '-80px 0px -40% 0px' });
-
-sections.forEach(function(s) { sectionObserver.observe(s); });
-
-// Set initial active state on load (hero is at the top)
-if (sections.length > 0) {
-  setActiveLink(sections[0].getAttribute('id'));
+  if (!best && sections.length > 0) {
+    best = sections[sections.length - 1];
+  }
+  if (best) setActiveLink(best.getAttribute('id'));
 }
+
+window.addEventListener('scroll', onScroll, { passive: true });
+onScroll();
 </script>
 </body>
 </html>

@@ -24,6 +24,8 @@ jobs:
           repository: yuzu-octopus/ProjectSite
           path: generator
           persist-credentials: false
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y libcairo2-dev fonts-jetbrains-mono
       - name: Generate page
         run: |
           pip install jinja2
